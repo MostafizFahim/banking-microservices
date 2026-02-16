@@ -1,0 +1,101 @@
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <button class="btn btn-outline-secondary mb-3" (click)="goBack()" [disabled]="loading">
+        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+      </button>
+
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">
+            <i class="fas fa-plus-circle me-2"></i>Create New Account
+          </h4>
+        </div>
+        <div class="card-body">
+          <form [formGroup]="accountForm" (ngSubmit)="onSubmit()">
+            <!-- Account Number -->
+            <div class="mb-3">
+              <label class="form-label">Account Number <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" 
+                     [class.is-invalid]="submitted && f['accountNumber'].errors"
+                     formControlName="accountNumber" 
+                     placeholder="Enter 10-digit account number">
+              <div *ngIf="submitted && f['accountNumber'].errors" class="invalid-feedback">
+                <div *ngIf="f['accountNumber'].errors['required']">Account number is required</div>
+                <div *ngIf="f['accountNumber'].errors['pattern']">Account number must be 10 digits</div>
+              </div>
+            </div>
+
+            <!-- Account Holder Name -->
+            <div class="mb-3">
+              <label class="form-label">Account Holder Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" 
+                     [class.is-invalid]="submitted && f['accountHolderName'].errors"
+                     formControlName="accountHolderName" 
+                     placeholder="Enter full name">
+              <div *ngIf="submitted && f['accountHolderName'].errors" class="invalid-feedback">
+                <div *ngIf="f['accountHolderName'].errors['required']">Name is required</div>
+                <div *ngIf="f['accountHolderName'].errors['minlength']">Name must be at least 2 characters</div>
+              </div>
+            </div>
+
+            <!-- Email -->
+            <div class="mb-3">
+              <label class="form-label">Email Address <span class="text-danger">*</span></label>
+              <input type="email" class="form-control" 
+                     [class.is-invalid]="submitted && f['email'].errors"
+                     formControlName="email" 
+                     placeholder="Enter email address">
+              <div *ngIf="submitted && f['email'].errors" class="invalid-feedback">
+                <div *ngIf="f['email'].errors['required']">Email is required</div>
+                <div *ngIf="f['email'].errors['email']">Please enter a valid email address</div>
+              </div>
+            </div>
+
+            <div class="row">
+              <!-- Initial Balance -->
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Initial Balance <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" 
+                       [class.is-invalid]="submitted && f['balance'].errors"
+                       formControlName="balance" 
+                       step="0.01" min="0" placeholder="0.00">
+                <div *ngIf="submitted && f['balance'].errors" class="invalid-feedback">
+                  <div *ngIf="f['balance'].errors['required']">Balance is required</div>
+                  <div *ngIf="f['balance'].errors['min']">Balance must be 0 or greater</div>
+                </div>
+              </div>
+
+              <!-- Account Type -->
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Account Type <span class="text-danger">*</span></label>
+                <select class="form-control" 
+                        [class.is-invalid]="submitted && f['accountType'].errors"
+                        formControlName="accountType">
+                  <option value="SAVINGS">Savings Account</option>
+                  <option value="CHECKING">Checking Account</option>
+                </select>
+                <div *ngIf="submitted && f['accountType'].errors" class="invalid-feedback">
+                  Account type is required
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary" 
+                      [disabled]="loading">
+                <i class="fas fa-save me-2"></i>
+                <span *ngIf="!loading">Create Account</span>
+                <span *ngIf="loading">
+                  <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Creating...
+                </span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

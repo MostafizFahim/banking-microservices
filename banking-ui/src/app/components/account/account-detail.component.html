@@ -1,0 +1,241 @@
+<div class="container-fluid py-4">
+  <!-- Header with Back Button -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <button class="btn btn-outline-secondary mb-3" (click)="goBack()" [disabled]="loading">
+        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+      </button>
+      
+      <!-- Show loading state for header -->
+      <div *ngIf="loading">
+        <div class="placeholder-glow">
+          <span class="placeholder col-6"></span>
+        </div>
+      </div>
+      <h2 *ngIf="!loading" class="display-6">
+        <i class="fas fa-user-circle me-2 text-primary"></i>
+        Account Details: {{account?.accountNumber}}
+      </h2>
+    </div>
+  </div>
+
+  <!-- Main Loading State -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-3 text-muted">Loading account details...</p>
+  </div>
+
+  <!-- Content - Only show when not loading -->
+  <ng-container *ngIf="!loading && account">
+    <!-- Account Summary Card -->
+    <div class="row mb-4">
+      <div class="col-md-8">
+        <div class="card">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+              <i class="fas fa-info-circle me-2"></i>Account Information
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <p><strong>Account Number:</strong> {{account.accountNumber}}</p>
+                <p><strong>Holder Name:</strong> {{account.accountHolderName}}</p>
+                <p><strong>Email:</strong> {{account.email}}</p>
+              </div>
+              <div class="col-md-6">
+                <p><strong>Type:</strong> 
+                  <span class="badge bg-info">{{account.accountType}}</span>
+                </p>
+                <p><strong>Status:</strong> 
+                  <span class="badge" [ngClass]="{
+                    'bg-success': account.status === 'ACTIVE',
+                    'bg-danger': account.status === 'FROZEN',
+                    'bg-secondary': account.status === 'INACTIVE'
+                  }">{{account.status}}</span>
+                </p>
+                <p><strong>Balance:</strong> 
+                  <span class="h4 text-success">{{account.balance | currency:'USD'}}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="col-md-4">
+        <div class="card bg-light h-100">
+          <div class="card-body">
+            <h6 class="card-title text-muted">Transaction Summary</h6>
+            <div *ngIf="!summary" class="text-center py-3">
+              <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </div>
+            <ng-container *ngIf="summary">
+              <div class="d-flex justify-content-between mb-2">
+                <span>Total Deposits:</span>
+                <strong class="text-success">{{summary.totalDeposits | currency:'USD'}}</strong>
+              </div>
+              <div class="d-flex justify-content-between mb-2">
+                <span>Total Withdrawals:</span>
+                <strong class="text-danger">{{summary.totalWithdrawals | currency:'USD'}}</strong>
+              </div>
+              <hr>
+              <div class="d-flex justify-content-between">
+                <span>Net Balance:</span>
+                <strong [class.text-success]="summary.netBalance >= 0" 
+                        [class.text-danger]="summary.netBalance < 0">
+                  {{summary.netBalance | currency:'USD'}}
+                </strong>
+              </div>
+              <div class="d-flex justify-content-between mt-2">
+                <span>Total Transactions:</span>
+                <strong>{{summary.totalTransactions}}</strong>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transaction Form -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+              <i class="fas fa-exchange-alt me-2"></i>New Transaction
+            </h5>
+          </div>
+          <div class="card-body">
+            <form [formGroup]="transactionForm" (ngSubmit)="onSubmitTransaction()">
+              <div class="row">
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Transaction Type</label>
+                    <select class="form-control" formControlName="transactionType">
+                      <option value="DEPOSIT">Deposit</option>
+                      <option value="WITHDRAWAL">Withdrawal</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Amount ($)</label>
+                    <input type="number" class="form-control" formControlName="amount" 
+                           step="0.01" min="0.01" placeholder="0.00"
+                           [class.is-invalid]="transactionForm.get('amount')?.invalid && transactionForm.get('amount')?.touched">
+                    <div class="invalid-feedback" *ngIf="transactionForm.get('amount')?.invalid && transactionForm.get('amount')?.touched">
+                      Please enter a valid amount
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Description (Optional)</label>
+                    <input type="text" class="form-control" formControlName="description" 
+                           placeholder="Enter description">
+                  </div>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                  <button type="submit" class="btn btn-success w-100" 
+                          [disabled]="transactionForm.invalid || submitting">
+                    <i class="fas fa-paper-plane me-2"></i>
+                    <span *ngIf="!submitting">Submit</span>
+                    <span *ngIf="submitting">
+                      <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Processing...
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading indicator for transactions -->
+    <div *ngIf="loadingTransactions" class="text-center my-3">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading transactions...</span>
+      </div>
+      <p class="mt-2">Loading transactions...</p>
+    </div>
+
+    <!-- Transactions History -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">
+              <i class="fas fa-history me-2"></i>Transaction History
+            </h5>
+          </div>
+          <div class="card-body">
+            <!-- Empty State -->
+            <div *ngIf="!loadingTransactions && transactions.length === 0" class="text-center py-4">
+              <i class="fas fa-receipt fa-4x text-muted mb-3"></i>
+              <p>No transactions yet</p>
+            </div>
+
+            <!-- Transactions Table -->
+            <div *ngIf="transactions.length > 0" class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th class="text-end">Amount</th>
+                    <th class="text-end">Balance After</th>
+                    <th>Status</th>
+                    <th>Reference</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let tx of transactions; trackBy: trackByTransactionId">
+                    <td>{{tx.timestamp | date:'medium'}}</td>
+                    <td>
+                      <span class="badge" [ngClass]="{
+                        'bg-success': tx.transactionType === 'DEPOSIT',
+                        'bg-danger': tx.transactionType === 'WITHDRAWAL'
+                      }">{{tx.transactionType}}</span>
+                    </td>
+                    <td>{{tx.description || '-'}}</td>
+                    <td class="text-end" [class.text-success]="tx.transactionType === 'DEPOSIT'"
+                                           [class.text-danger]="tx.transactionType === 'WITHDRAWAL'">
+                      <strong>{{tx.amount | currency:'USD'}}</strong>
+                    </td>
+                    <td class="text-end">{{tx.balanceAfter | currency:'USD'}}</td>
+                    <td>
+                      <span class="badge" [ngClass]="{
+                        'bg-success': tx.status === 'COMPLETED',
+                        'bg-danger': tx.status === 'FAILED'
+                      }">{{tx.status}}</span>
+                    </td>
+                    <td><small class="text-muted">{{tx.reference}}</small></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Error state if account not found -->
+  <div *ngIf="!loading && !account" class="text-center py-5">
+    <i class="fas fa-exclamation-circle fa-4x text-danger mb-3"></i>
+    <h3>Account Not Found</h3>
+    <p class="text-muted">The account you're looking for doesn't exist.</p>
+    <button class="btn btn-primary" (click)="goBack()">
+      <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+    </button>
+  </div>
+</div>
