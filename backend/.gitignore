@@ -1,0 +1,40 @@
+# Compiled files
+target/
+*.class
+
+# Maven
+*.war
+*.jar
+*.ear
+*.log
+*.iml
+*.ipr
+*.iws
+
+# Eclipse
+.settings/
+.classpath
+.project
+
+# IntelliJ
+.idea/
+*.iml
+*.iws
+
+# VS Code
+.vscode/
+
+# Logs
+logs/
+log/
+*.log
+
+# Temp files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Application properties (if you have sensitive data)
+# application-prod.properties
+# application-dev.properties
