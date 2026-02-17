@@ -8,7 +8,7 @@ import { NotificationService } from '../../services/notification.service';
 @Component({
   selector: 'app-create-account',
   templateUrl: './create-account.component.html',
-  //styleUrls: ['./create-account.component.scss'],
+  styleUrls: ['./create-account.component.scss'],
   standalone: true,
   imports: [CommonModule, RouterModule, ReactiveFormsModule]
 })
