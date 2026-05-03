@@ -285,6 +285,26 @@ public class AccountController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Accounts retrieved successfully", accounts));
     }
 
+    @PutMapping("/{accountNumber}/status")
+    public ResponseEntity<ApiResponse<AccountDTO>> updateAccountStatus(
+            @PathVariable String accountNumber,
+            @RequestParam String status) {
+
+        log.info("Updating status for account: {} to {}", accountNumber, status);
+
+        return accountRepository.findByAccountNumber(accountNumber)
+                .map(account -> {
+                    account.setStatus(status);
+                    Account updatedAccount = accountRepository.save(account);
+                    return ResponseEntity.ok(new ApiResponse<>(
+                            true,
+                            "Account status updated successfully",
+                            convertToDTO(updatedAccount)
+                    ));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     // Helper method to convert Entity to DTO
     private AccountDTO convertToDTO(Account account) {
         AccountDTO dto = new AccountDTO();

@@ -410,6 +410,31 @@
   letter-spacing: 0.3px;
 }
 
+/* Status Card */
+.status-card {
+  background: var(--white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.status-badge {
+  font-size: 1rem;
+  padding: var(--spacing-sm) var(--spacing-lg);
+}
+
+.btn-warning {
+  background: var(--warning);
+  color: var(--white);
+  border: none;
+}
+
+.btn-warning:hover {
+  background: var(--warning-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   :host {

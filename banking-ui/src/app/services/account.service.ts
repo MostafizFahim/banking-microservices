@@ -137,6 +137,23 @@ export class AccountService {
       );
   }
 
+  updateAccountStatus(accountNumber: string, status: string): Observable<Account | null> {
+  console.log(`Updating account ${accountNumber} status to: ${status}`);
+  return this.http.put<ApiResponse<Account>>(
+    `${this.apiUrl}/accounts/${accountNumber}/status?status=${status}`, 
+    {}
+  ).pipe(
+    timeout(this.timeoutMs),
+    tap(response => {
+      if (response.success) {
+        this.notification.showSuccess(`Account ${status.toLowerCase()} successfully`);
+      }
+    }),
+    map(response => response.success ? response.data : null),
+    catchError(this.handleError<Account | null>('updateAccountStatus', null))
+  );
+}
+
   // Error handler
   private handleError<T>(operation = 'operation', result?: T) {
     return (error: any): Observable<T> => {

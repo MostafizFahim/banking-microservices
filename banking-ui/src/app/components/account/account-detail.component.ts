@@ -202,6 +202,25 @@ export class AccountDetailComponent implements OnInit, OnDestroy {
       });
   }
 
+  // Add this method
+toggleAccountStatus(): void {
+  if (!this.account) return;
+  
+  const newStatus = this.account.status === 'ACTIVE' ? 'FROZEN' : 'ACTIVE';
+  const action = newStatus === 'ACTIVE' ? 'Activate' : 'Freeze';
+  
+  if (confirm(`Are you sure you want to ${action} this account?`)) {
+    this.accountService.updateAccountStatus(this.accountNumber, newStatus).subscribe({
+      next: (updatedAccount) => {
+        if (updatedAccount) {
+          this.account = updatedAccount;
+          this.cdr.detectChanges();
+        }
+      }
+    });
+  }
+}
+
   goBack(): void {
     this.router.navigate(['/dashboard']);
   }
