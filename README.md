@@ -2,6 +2,33 @@
 
 A full-stack banking application built with Angular and Spring Boot microservices.
 
+## 📸 Application Screenshots
+
+### Dashboard Overview
+
+![Dashboard](./images/dashboard.png)
+_Main dashboard showing account statistics and recent activity_
+
+### Account & Transaction Management
+
+![Account Transactions](./images/accountTransaction.png)
+_Transaction history and management interface_
+
+### Create New Account
+
+![Create New Account](./images/createNewAccount.png)
+_Account creation form with validation_
+
+### Account Details
+
+![Account Details](./images/accountDetails.png)
+_Detailed view of account information_
+
+### Updated Account Details After Transaction
+
+![Updated Account Details](./images/updatedAccountDetailsAfterTransaction.png)
+_Account details reflecting recent transactions_
+
 ## 🚀 Tech Stack
 
 ### Backend
@@ -59,9 +86,13 @@ banking-microservices/
 │ ├── src/
 │ ├── angular.json
 │ └── package.json
+├── images/ # Application screenshots
+│ ├── dashboard.png
+│ ├── accountTransaction.png
+│ ├── createNewAccount.png
+│ ├── accountDetails.png
+│ └── updatedAccountDetailsAfterTransaction.png
 └── README.md
-
-text
 
 ## 🚦 Running the Application
 
@@ -80,11 +111,11 @@ mvn clean install
 mvn spring-boot:run -pl account-service
 Backend runs on: http://localhost:8081
 
-Frontend Setup
-bash
+### Frontend Setup
 cd banking-ui
 npm install
 ng serve
+
 Frontend runs on: http://localhost:4200
 
 Database Console
@@ -98,34 +129,24 @@ Password: (blank)
 
 📱 API Endpoints
 Account Service (/api/accounts)
-GET / - Get all accounts
-
-GET /{id} - Get account by ID
-
-GET /number/{accountNumber} - Get account by number
-
-POST / - Create new account
-
-DELETE /{id} - Delete account
-
-GET /status/{status} - Get accounts by status
-
+Method	Endpoint	Description
+GET	/	Get all accounts
+GET	/{id}	Get account by ID
+GET	/number/{accountNumber}	Get account by number
+POST	/	Create new account
+DELETE	/{id}	Delete account
+GET	/status/{status}	Get accounts by status
 Transaction Endpoints
-POST /{accountNumber}/deposit - Deposit money
-
-POST /{accountNumber}/withdraw - Withdraw money
-
-POST /transactions - Process unified transaction
-
+Method	Endpoint	Description
+POST	/{accountNumber}/deposit	Deposit money
+POST	/{accountNumber}/withdraw	Withdraw money
+POST	/transactions	Process unified transaction
 Transaction Service (/api/transactions)
-GET /account/{accountNumber} - Get account transactions
-
-GET /account/{accountNumber}/type/{type} - Get by transaction type
-
-GET /account/{accountNumber}/summary - Get transaction summary
-
-GET /reference/{reference} - Get transaction by reference
-
+Method	Endpoint	Description
+GET	/account/{accountNumber}	Get account transactions
+GET	/account/{accountNumber}/type/{type}	Get by transaction type
+GET	/account/{accountNumber}/summary	Get transaction summary
+GET	/reference/{reference}	Get transaction by reference
 🧪 Testing
 Run backend tests:
 
