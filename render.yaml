@@ -1,7 +1,7 @@
 services:
   # Backend Java Service
   - type: web
-    name: banking-microservices
+    name: banking-api
     runtime: image
     repo: https://github.com/MostafizFahim/banking-microservices
     plan: free
@@ -10,32 +10,3 @@ services:
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
-      - key: JDBC_DATABASE_URL
-        fromDatabase:
-          name: banking-db
-          property: connectionString
-      - key: JDBC_DATABASE_USERNAME
-        fromDatabase:
-          name: banking-db
-          property: user
-      - key: JDBC_DATABASE_PASSWORD
-        fromDatabase:
-          name: banking-db
-          property: password
-
-  # PostgreSQL Database
-  - type: database
-    name: banking-db
-    plan: free
-    databaseName: banking_db
-    user: banking_user
-
-  # Frontend Static Site
-  - type: web
-    name: banking-ui
-    runtime: static
-    buildCommand: cd banking-ui && npm install && npm run build
-    staticPublishPath: ./banking-ui/dist/banking-ui/browser
-    envVars:
-      - key: API_URL
-        value: https://banking-api.onrender.com/api
