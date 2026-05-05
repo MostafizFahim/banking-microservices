@@ -12,4 +12,6 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /app/account-service/target/account-service-*.jar app.jar
 EXPOSE 8081
-ENTRYPOINT ["java", "-Dspring.profiles.active=prod", "-jar", "app.jar"]
+
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
