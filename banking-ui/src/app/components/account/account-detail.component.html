@@ -5,7 +5,7 @@
       <button class="btn btn-outline-secondary mb-3" (click)="goBack()" [disabled]="loading">
         <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
       </button>
-      
+
       <!-- Show loading state for header -->
       <div *ngIf="loading">
         <div class="placeholder-glow">
@@ -46,17 +46,17 @@
                 <p><strong>Email:</strong> {{account.email}}</p>
               </div>
               <div class="col-md-6">
-                <p><strong>Type:</strong> 
+                <p><strong>Type:</strong>
                   <span class="badge bg-info">{{account.accountType}}</span>
                 </p>
-                <p><strong>Status:</strong> 
+                <p><strong>Status:</strong>
                   <span class="badge" [ngClass]="{
                     'bg-success': account.status === 'ACTIVE',
                     'bg-danger': account.status === 'FROZEN',
                     'bg-secondary': account.status === 'INACTIVE'
                   }">{{account.status}}</span>
                 </p>
-                <p><strong>Balance:</strong> 
+                <p><strong>Balance:</strong>
                   <span class="h4 text-success">{{account.balance | currency:'USD'}}</span>
                 </p>
               </div>
@@ -87,7 +87,7 @@
               <hr>
               <div class="d-flex justify-content-between">
                 <span>Net Balance:</span>
-                <strong [class.text-success]="summary.netBalance >= 0" 
+                <strong [class.text-success]="summary.netBalance >= 0"
                         [class.text-danger]="summary.netBalance < 0">
                   {{summary.netBalance | currency:'USD'}}
                 </strong>
@@ -102,39 +102,39 @@
       </div>
     </div>
 
-    <!-- Add this after the account info card, before transaction form -->
-<div class="row mb-4" *ngIf="account">
-  <div class="col-12">
-    <div class="card status-card">
-      <div class="card-body d-flex justify-content-between align-items-center">
-        <div>
-          <h6 class="mb-1">Account Status</h6>
-          <span class="badge status-badge" 
-                [ngClass]="{
-                  'bg-success': account.status === 'ACTIVE',
-                  'bg-danger': account.status === 'FROZEN',
-                  'bg-secondary': account.status === 'INACTIVE'
-                }">
-            {{account.status}}
-          </span>
+    <!-- Account Status Card -->
+    <div class="row mb-4" *ngIf="account">
+      <div class="col-12">
+        <div class="card status-card">
+          <div class="card-body d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="mb-1">Account Status</h6>
+              <span class="badge status-badge"
+                    [ngClass]="{
+                      'bg-success': account.status === 'ACTIVE',
+                      'bg-danger': account.status === 'FROZEN',
+                      'bg-secondary': account.status === 'INACTIVE'
+                    }">
+                {{account.status}}
+              </span>
+            </div>
+            <button class="btn"
+                    [ngClass]="{
+                      'btn-warning': account.status === 'ACTIVE',
+                      'btn-success': account.status === 'FROZEN'
+                    }"
+                    (click)="toggleAccountStatus()">
+              <i class="fas"
+                 [ngClass]="{
+                   'fa-snowflake': account.status === 'ACTIVE',
+                   'fa-play': account.status === 'FROZEN'
+                 }"></i>
+              {{account.status === 'ACTIVE' ? 'Freeze Account' : 'Activate Account'}}
+            </button>
+          </div>
         </div>
-        <button class="btn" 
-                [ngClass]="{
-                  'btn-warning': account.status === 'ACTIVE',
-                  'btn-success': account.status === 'FROZEN'
-                }"
-                (click)="toggleAccountStatus()">
-          <i class="fas" 
-             [ngClass]="{
-               'fa-snowflake': account.status === 'ACTIVE',
-               'fa-play': account.status === 'FROZEN'
-             }"></i>
-          {{account.status === 'ACTIVE' ? 'Freeze Account' : 'Activate Account'}}
-        </button>
       </div>
     </div>
-  </div>
-</div>
 
     <!-- Transaction Form -->
     <div class="row mb-4">
@@ -160,7 +160,7 @@
                 <div class="col-md-3">
                   <div class="form-group">
                     <label>Amount ($)</label>
-                    <input type="number" class="form-control" formControlName="amount" 
+                    <input type="number" class="form-control" formControlName="amount"
                            step="0.01" min="0.01" placeholder="0.00"
                            [class.is-invalid]="transactionForm.get('amount')?.invalid && transactionForm.get('amount')?.touched">
                     <div class="invalid-feedback" *ngIf="transactionForm.get('amount')?.invalid && transactionForm.get('amount')?.touched">
@@ -171,12 +171,12 @@
                 <div class="col-md-4">
                   <div class="form-group">
                     <label>Description (Optional)</label>
-                    <input type="text" class="form-control" formControlName="description" 
+                    <input type="text" class="form-control" formControlName="description"
                            placeholder="Enter description">
                   </div>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
-                  <button type="submit" class="btn btn-success w-100" 
+                  <button type="submit" class="btn btn-success w-100"
                           [disabled]="transactionForm.invalid || submitting">
                     <i class="fas fa-paper-plane me-2"></i>
                     <span *ngIf="!submitting">Submit</span>
@@ -193,6 +193,12 @@
       </div>
     </div>
 
+<!--    &lt;!&ndash; Debug Info (remove after testing) &ndash;&gt;-->
+<!--    <div class="alert alert-info small mb-3" *ngIf="!loadingTransactions && originalTransactions.length > 0">-->
+<!--      <strong>Debug:</strong> Found {{originalTransactions.length}} total transactions,-->
+<!--      showing {{filteredTransactions.length}} after filters-->
+<!--    </div>-->
+
     <!-- Loading indicator for transactions -->
     <div *ngIf="loadingTransactions" class="text-center my-3">
       <div class="spinner-border text-primary" role="status">
@@ -201,8 +207,8 @@
       <p class="mt-2">Loading transactions...</p>
     </div>
 
-    <!-- Transactions History -->
-    <div class="row">
+    <!-- Transactions History Section -->
+    <div class="row" *ngIf="!loadingTransactions">
       <div class="col-12">
         <div class="card">
           <div class="card-header bg-dark text-white">
@@ -211,49 +217,122 @@
             </h5>
           </div>
           <div class="card-body">
-            <!-- Empty State -->
-            <div *ngIf="!loadingTransactions && transactions.length === 0" class="text-center py-4">
-              <i class="fas fa-receipt fa-4x text-muted mb-3"></i>
-              <p>No transactions yet</p>
+
+            <!-- Filter Section -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <div class="card filter-card">
+                  <div class="card-body">
+                    <h6 class="filter-title">
+                      <i class="fas fa-filter me-2"></i>Filter Transactions
+                    </h6>
+                    <div class="filter-grid">
+                      <!-- Date Range -->
+                      <div class="filter-group">
+                        <label>From Date</label>
+                        <input type="date" class="form-control" #fromDate>
+                      </div>
+                      <div class="filter-group">
+                        <label>To Date</label>
+                        <input type="date" class="form-control" #toDate>
+                      </div>
+
+                      <!-- Transaction Type -->
+                      <div class="filter-group">
+                        <label>Transaction Type</label>
+                        <select class="form-control" #typeSelect>
+                          <option value="ALL">All Types</option>
+                          <option value="DEPOSIT">Deposits Only</option>
+                          <option value="WITHDRAWAL">Withdrawals Only</option>
+                        </select>
+                      </div>
+
+                      <!-- Min Amount -->
+                      <div class="filter-group">
+                        <label>Min Amount ($)</label>
+                        <input type="number" class="form-control" #minAmount placeholder="0">
+                      </div>
+
+                      <!-- Action Buttons -->
+                      <div class="filter-actions">
+                        <button class="btn btn-primary" (click)="applyFilters(fromDate.value, toDate.value, typeSelect.value, minAmount.value)">
+                          <i class="fas fa-search me-2"></i>Apply Filters
+                        </button>
+                        <button class="btn btn-outline-secondary" (click)="resetFilters()">
+                          <i class="fas fa-undo me-2"></i>Reset
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <!-- Transactions Table -->
-            <div *ngIf="transactions.length > 0" class="table-responsive">
+            <!-- Export Buttons -->
+            <div class="row mb-3">
+              <div class="col-12 d-flex justify-content-end gap-2">
+                <button class="btn btn-outline-success"
+                        (click)="exportTransactions()"
+                        [disabled]="filteredTransactions.length === 0">
+                  <i class="fas fa-file-csv me-2"></i>Export to CSV
+                </button>
+                <button class="btn btn-outline-primary"
+                        (click)="exportTransactionsPDF()"
+                        [disabled]="filteredTransactions.length === 0">
+                  <i class="fas fa-file-pdf me-2"></i>Export to PDF
+                </button>
+              </div>
+            </div>
+
+            <!-- Empty State - Using filteredTransactions -->
+            <div *ngIf="filteredTransactions.length === 0" class="text-center py-4">
+              <i class="fas fa-receipt fa-4x text-muted mb-3"></i>
+              <p>No transactions found</p>
+              <small class="text-muted" *ngIf="originalTransactions.length === 0">
+                Make a deposit or withdrawal to see transactions here
+              </small>
+              <small class="text-muted" *ngIf="originalTransactions.length > 0 && filteredTransactions.length === 0">
+                Try changing your filter criteria
+              </small>
+            </div>
+
+            <!-- Transactions Table - Using filteredTransactions -->
+            <div *ngIf="filteredTransactions.length > 0" class="table-responsive">
               <table class="table table-hover">
                 <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>Description</th>
-                    <th class="text-end">Amount</th>
-                    <th class="text-end">Balance After</th>
-                    <th>Status</th>
-                    <th>Reference</th>
-                  </tr>
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Description</th>
+                  <th class="text-end">Amount</th>
+                  <th class="text-end">Balance After</th>
+                  <th>Status</th>
+                  <th>Reference</th>
+                </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let tx of transactions; trackBy: trackByTransactionId">
-                    <td>{{tx.timestamp | date:'medium'}}</td>
-                    <td>
+                <tr *ngFor="let tx of filteredTransactions; trackBy: trackByTransactionId">
+                  <td>{{tx.timestamp | date:'medium'}}</td>
+                  <td>
                       <span class="badge" [ngClass]="{
                         'bg-success': tx.transactionType === 'DEPOSIT',
                         'bg-danger': tx.transactionType === 'WITHDRAWAL'
                       }">{{tx.transactionType}}</span>
-                    </td>
-                    <td>{{tx.description || '-'}}</td>
-                    <td class="text-end" [class.text-success]="tx.transactionType === 'DEPOSIT'"
-                                           [class.text-danger]="tx.transactionType === 'WITHDRAWAL'">
-                      <strong>{{tx.amount | currency:'USD'}}</strong>
-                    </td>
-                    <td class="text-end">{{tx.balanceAfter | currency:'USD'}}</td>
-                    <td>
+                  </td>
+                  <td>{{tx.description || '-'}}</td>
+                  <td class="text-end" [class.text-success]="tx.transactionType === 'DEPOSIT'"
+                      [class.text-danger]="tx.transactionType === 'WITHDRAWAL'">
+                    <strong>{{tx.amount | currency:'USD'}}</strong>
+                  </td>
+                  <td class="text-end">{{tx.balanceAfter | currency:'USD'}}</td>
+                  <td>
                       <span class="badge" [ngClass]="{
                         'bg-success': tx.status === 'COMPLETED',
                         'bg-danger': tx.status === 'FAILED'
                       }">{{tx.status}}</span>
-                    </td>
-                    <td><small class="text-muted">{{tx.reference}}</small></td>
-                  </tr>
+                  </td>
+                  <td><small class="text-muted">{{tx.reference}}</small></td>
+                </tr>
                 </tbody>
               </table>
             </div>

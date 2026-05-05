@@ -115,30 +115,26 @@ public class AccountController {
         }
 
         Account account = accountOpt.get();
+
+        // Add status check
+        if ("FROZEN".equals(account.getStatus())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "Account is frozen. Cannot deposit.", null));
+        }
+
+        // Rest of deposit logic...
         BigDecimal oldBalance = account.getBalance();
         BigDecimal newBalance = oldBalance.add(amount);
-
         account.setBalance(newBalance);
         Account updatedAccount = accountRepository.save(account);
 
-        // Record transaction
-        Transaction transaction = new Transaction();
-        transaction.setAccountId(account.getId());
-        transaction.setAccountNumber(account.getAccountNumber());
-        transaction.setTransactionType("DEPOSIT");
-        transaction.setAmount(amount);
-        transaction.setBalanceAfter(newBalance);
-        transaction.setDescription("Deposit to account");
-        transaction.setStatus("COMPLETED");
-        transactionRepository.save(transaction);
-
         return ResponseEntity.ok(new ApiResponse<>(
                 true,
-                String.format("Deposited $%.2f successfully. Reference: %s",
-                        amount, transaction.getReference()),
+                String.format("Deposited $%.2f successfully", amount),
                 convertToDTO(updatedAccount)
         ));
     }
+
 
     // Withdraw money
     @PostMapping("/{accountNumber}/withdraw")
@@ -157,43 +153,26 @@ public class AccountController {
 
         Account account = accountOpt.get();
 
-        if (account.getBalance().compareTo(amount) < 0) {
-            // Record failed transaction
-            Transaction failedTransaction = new Transaction();
-            failedTransaction.setAccountId(account.getId());
-            failedTransaction.setAccountNumber(account.getAccountNumber());
-            failedTransaction.setTransactionType("WITHDRAWAL");
-            failedTransaction.setAmount(amount);
-            failedTransaction.setBalanceAfter(account.getBalance());
-            failedTransaction.setDescription("Failed - Insufficient funds");
-            failedTransaction.setStatus("FAILED");
-            transactionRepository.save(failedTransaction);
+        // Add status check
+        if ("FROZEN".equals(account.getStatus())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "Account is frozen. Cannot withdraw.", null));
+        }
 
+        // Rest of withdraw logic...
+        if (account.getBalance().compareTo(amount) < 0) {
             return ResponseEntity.badRequest()
                     .body(new ApiResponse<>(false, "Insufficient funds", null));
         }
 
         BigDecimal oldBalance = account.getBalance();
         BigDecimal newBalance = oldBalance.subtract(amount);
-
         account.setBalance(newBalance);
         Account updatedAccount = accountRepository.save(account);
 
-        // Record successful transaction
-        Transaction transaction = new Transaction();
-        transaction.setAccountId(account.getId());
-        transaction.setAccountNumber(account.getAccountNumber());
-        transaction.setTransactionType("WITHDRAWAL");
-        transaction.setAmount(amount);
-        transaction.setBalanceAfter(newBalance);
-        transaction.setDescription("Withdrawal from account");
-        transaction.setStatus("COMPLETED");
-        transactionRepository.save(transaction);
-
         return ResponseEntity.ok(new ApiResponse<>(
                 true,
-                String.format("Withdrew $%.2f successfully. Reference: %s",
-                        amount, transaction.getReference()),
+                String.format("Withdrew $%.2f successfully", amount),
                 convertToDTO(updatedAccount)
         ));
     }
@@ -213,6 +192,34 @@ public class AccountController {
         }
 
         Account account = accountOpt.get();
+
+        // NEW: Check if account is FROZEN
+        if ("FROZEN".equals(account.getStatus())) {
+            log.warn("Transaction rejected - Account is FROZEN: {}", account.getAccountNumber());
+
+            // Record failed transaction
+            Transaction failedTransaction = new Transaction();
+            failedTransaction.setAccountId(account.getId());
+            failedTransaction.setAccountNumber(account.getAccountNumber());
+            failedTransaction.setTransactionType(request.getTransactionType());
+            failedTransaction.setAmount(request.getAmount());
+            failedTransaction.setBalanceAfter(account.getBalance());
+            failedTransaction.setDescription("REJECTED: Account is frozen. " + (request.getDescription() != null ? request.getDescription() : ""));
+            failedTransaction.setStatus("FAILED");
+            failedTransaction.setReference("REJECTED_" + System.currentTimeMillis() + "_" + (int)(Math.random() * 1000));
+            transactionRepository.save(failedTransaction);
+
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "Account is frozen. Please contact bank to unfreeze.", null));
+        }
+
+        // Also check if account is INACTIVE
+        if ("INACTIVE".equals(account.getStatus())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "Account is inactive.", null));
+        }
+
+        // Rest of your transaction processing logic...
         Transaction transaction = new Transaction();
         transaction.setAccountId(account.getId());
         transaction.setAccountNumber(account.getAccountNumber());
@@ -231,6 +238,7 @@ public class AccountController {
             if (account.getBalance().compareTo(request.getAmount()) < 0) {
                 transaction.setBalanceAfter(account.getBalance());
                 transaction.setStatus("FAILED");
+                transaction.setDescription("FAILED: Insufficient funds. " + transaction.getDescription());
                 transactionRepository.save(transaction);
 
                 return ResponseEntity.badRequest()

@@ -7,6 +7,7 @@ import { AccountService } from '../../services/account.service';
 import { NotificationService } from '../../services/notification.service';
 import { Account } from '../../models/account.model';
 import { Transaction, TransactionSummary, TransactionRequest } from '../../models/transaction.model';
+import { ExportService } from '../../services/export.service';
 
 @Component({
   selector: 'app-account-detail',
@@ -17,17 +18,21 @@ import { Transaction, TransactionSummary, TransactionRequest } from '../../model
 })
 export class AccountDetailComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
-  
+
   account: Account | null = null;
   transactions: Transaction[] = [];
   summary: TransactionSummary | null = null;
   transactionForm: FormGroup;
-  
+
   loading = true;
   loadingTransactions = false;
   submitting = false;
-  
+
   accountNumber: string = '';
+
+  // Add these properties
+  originalTransactions: Transaction[] = [];
+  filteredTransactions: Transaction[] = [];
 
   constructor(
     private route: ActivatedRoute,
@@ -35,6 +40,7 @@ export class AccountDetailComponent implements OnInit, OnDestroy {
     private accountService: AccountService,
     private notification: NotificationService,
     private fb: FormBuilder,
+     private exportService: ExportService,
     private cdr: ChangeDetectorRef  // Add this
   ) {
     this.transactionForm = this.fb.group({
@@ -69,7 +75,7 @@ export class AccountDetailComponent implements OnInit, OnDestroy {
   loadAllData(): void {
     this.loading = true;
     this.cdr.detectChanges(); // Force update for loading state
-    
+
     this.accountService.getAccountByNumber(this.accountNumber)
       .pipe(
         takeUntil(this.destroy$),
@@ -100,28 +106,20 @@ export class AccountDetailComponent implements OnInit, OnDestroy {
       });
   }
 
+  // Update loadTransactions method
   loadTransactions(): void {
     this.loadingTransactions = true;
-    this.cdr.detectChanges(); // Force update
-    
     this.accountService.getAccountTransactions(this.accountNumber)
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => {
-          this.loadingTransactions = false;
-          this.cdr.detectChanges(); // Force update
-        })
-      )
+      .pipe(finalize(() => this.loadingTransactions = false))
       .subscribe({
         next: (transactions) => {
-          console.log('Transactions loaded:', transactions);
-          this.transactions = transactions;
-          this.cdr.detectChanges(); // Force update
+          this.originalTransactions = transactions;
+          this.filteredTransactions = transactions;
         },
         error: (error) => {
           console.error('Error loading transactions:', error);
-          this.transactions = [];
-          this.cdr.detectChanges(); // Force update
+          this.originalTransactions = [];
+          this.filteredTransactions = [];
         }
       });
   }
@@ -154,7 +152,7 @@ export class AccountDetailComponent implements OnInit, OnDestroy {
 
     const formValue = this.transactionForm.value;
     const amount = Number(formValue.amount);
-    
+
     if (isNaN(amount) || amount <= 0) {
       this.notification.showWarning('Please enter a valid positive amount');
       return;
@@ -205,10 +203,10 @@ export class AccountDetailComponent implements OnInit, OnDestroy {
   // Add this method
 toggleAccountStatus(): void {
   if (!this.account) return;
-  
+
   const newStatus = this.account.status === 'ACTIVE' ? 'FROZEN' : 'ACTIVE';
   const action = newStatus === 'ACTIVE' ? 'Activate' : 'Freeze';
-  
+
   if (confirm(`Are you sure you want to ${action} this account?`)) {
     this.accountService.updateAccountStatus(this.accountNumber, newStatus).subscribe({
       next: (updatedAccount) => {
@@ -219,6 +217,76 @@ toggleAccountStatus(): void {
       }
     });
   }
+}
+
+// Add filter methods
+applyFilters(fromDate: string, toDate: string, type: string, minAmount: string): void {
+  let filtered = [...this.originalTransactions];
+
+  // Filter by date range
+  if (fromDate) {
+    const from = new Date(fromDate);
+    filtered = filtered.filter(tx => new Date(tx.timestamp) >= from);
+  }
+
+  if (toDate) {
+    const to = new Date(toDate);
+    to.setHours(23, 59, 59); // End of day
+    filtered = filtered.filter(tx => new Date(tx.timestamp) <= to);
+  }
+
+  // Filter by transaction type
+  if (type && type !== 'ALL') {
+    filtered = filtered.filter(tx => tx.transactionType === type);
+  }
+
+  // Filter by minimum amount
+  if (minAmount && !isNaN(Number(minAmount))) {
+    const min = Number(minAmount);
+    filtered = filtered.filter(tx => tx.amount >= min);
+  }
+
+  this.filteredTransactions = filtered;
+
+  // Show notification
+  if (this.filteredTransactions.length === 0) {
+    this.notification.showInfo('No transactions match your filters');
+  } else {
+    this.notification.showSuccess(`Found ${this.filteredTransactions.length} transactions`);
+  }
+}
+
+resetFilters(): void {
+  this.filteredTransactions = [...this.originalTransactions];
+  this.notification.showInfo('Filters reset');
+}
+// Add export methods
+exportTransactions(): void {
+  if (this.filteredTransactions.length === 0) {
+    this.notification.showWarning('No transactions to export');
+    return;
+  }
+
+  this.exportService.exportToCSV(
+    this.filteredTransactions,
+    `account_${this.accountNumber}_transactions`
+  );
+
+  this.notification.showSuccess(`Exported ${this.filteredTransactions.length} transactions`);
+}
+
+exportTransactionsPDF(): void {
+  if (this.filteredTransactions.length === 0) {
+    this.notification.showWarning('No transactions to export');
+    return;
+  }
+
+  this.exportService.exportToPDF(
+    this.filteredTransactions,
+    `account_${this.accountNumber}_transactions`
+  );
+
+  this.notification.showSuccess(`Exported ${this.filteredTransactions.length} transactions`);
 }
 
   goBack(): void {

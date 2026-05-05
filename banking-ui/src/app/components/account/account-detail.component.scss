@@ -3,6 +3,7 @@
   display: block;
   padding: var(--spacing-lg);
 }
+
 /* Force dark color for all h2 in account detail */
 :host ::ng-deep h2 {
   color: #1e293b !important;
@@ -75,9 +76,9 @@
   font-weight: 600;
 }
 
-/* Account Info Card */
+/* Account Info Card - FIXED background */
 .account-info-card {
-  background: var(--dark);
+  background: var(--white);  /* Changed from var(--dark) */
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -87,7 +88,7 @@
 
 .info-header {
   background: var(--primary);
-  color: var(--dark);
+  color: var(--white);  /* Changed from var(--dark) */
   padding: var(--spacing-md) var(--spacing-xl);
   display: flex;
   align-items: center;
@@ -96,6 +97,7 @@
 
 .info-header i {
   font-size: 1.3rem;
+  color: var(--white);
 }
 
 .info-header h5 {
@@ -215,6 +217,7 @@
 
 .form-header i {
   font-size: 1.3rem;
+  color: var(--white);
 }
 
 .form-header h5 {
@@ -435,46 +438,125 @@
   box-shadow: var(--shadow-md);
 }
 
+.btn-success {
+  background: var(--success);
+  color: var(--white);
+  border: none;
+}
+
+.btn-success:hover {
+  background: var(--success-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Filter Card */
+.filter-card {
+  background: var(--white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.filter-title {
+  color: var(--dark);
+  margin-bottom: var(--spacing-lg);
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+  align-items: end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.filter-group label {
+  font-size: 0.85rem;
+  color: var(--gray);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  grid-column: span 2;
+  justify-content: flex-end;
+}
+
+/* Debug alert */
+.alert-info {
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  color: #0369a1;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   :host {
     padding: var(--spacing-sm);
   }
-  
+
   .info-body {
     grid-template-columns: 1fr;
     gap: var(--spacing-lg);
   }
-  
+
   .transaction-form {
     grid-template-columns: 1fr;
   }
-  
+
   .submit-btn {
     width: 100%;
     justify-content: center;
     margin-top: var(--spacing-sm);
   }
-  
+
   .transactions-table {
     font-size: 0.85rem;
   }
-  
+
   .transactions-table th,
   .transactions-table td {
     padding: var(--spacing-sm);
   }
-  
+
   .reference-number {
     font-size: 0.75rem;
   }
-  
+
   .page-title h2 {
     font-size: 1.5rem;
-    color: black;
+    color: #1e293b;
   }
-  
+
   .info-value.highlight {
     font-size: 1.5rem;
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-actions {
+    grid-column: span 1;
+    flex-direction: column;
+  }
+
+  .filter-actions button {
+    width: 100%;
   }
 }
