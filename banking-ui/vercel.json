@@ -1,0 +1,8 @@
+{
+  "buildCommand": "ng build --prod",
+  "outputDirectory": "dist/banking-ui/browser",
+  "framework": "angular",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/" }
+  ]
+}
