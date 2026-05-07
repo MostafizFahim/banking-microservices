@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/accounts")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
+
 
 
 public class TransactionController {

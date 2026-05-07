@@ -22,7 +22,7 @@ import java.math.BigDecimal;
 @RequestMapping("/api/accounts")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
+
 
 
 public class AccountController {
