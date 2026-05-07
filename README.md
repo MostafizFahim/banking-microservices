@@ -110,6 +110,10 @@ cd backend
 mvn clean install
 mvn spring-boot:run -pl account-service
 Backend runs on: http://localhost:8081
+# Run with dev profile (uses H2)
+mvn spring-boot:run -pl account-service -Dspring-boot.run.profiles=dev
+# Run with prod profile (uses PostgreSQL)
+mvn spring-boot:run -pl account-service -Dspring-boot.run.profiles=prod
 
 ### Frontend Setup
 cd banking-ui

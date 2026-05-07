@@ -1,5 +1,5 @@
 export const environment = {
   production: false,
-  apiUrl: '/api',  // This tells Angular to use the proxy
+  apiUrl: 'http://localhost:8081/api',
   wsUrl: 'ws://localhost:8081/ws'
 };
