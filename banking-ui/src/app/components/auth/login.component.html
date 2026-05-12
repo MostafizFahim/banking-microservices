@@ -1,0 +1,41 @@
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-header">
+      <i class="fas fa-university fa-3x"></i>
+      <h2>Banking App</h2>
+      <p>Login to your account</p>
+    </div>
+
+    <form (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label>Username</label>
+        <div class="input-group">
+          <span class="input-icon"><i class="fas fa-user"></i></span>
+          <input type="text" class="form-control" [(ngModel)]="username" name="username" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <div class="input-group">
+          <span class="input-icon"><i class="fas fa-lock"></i></span>
+          <input type="password" class="form-control" [(ngModel)]="password" name="password" required>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-login" [disabled]="loading">
+        <span *ngIf="!loading">Login</span>
+        <span *ngIf="loading">
+          <span class="spinner-border spinner-border-sm me-2"></span>
+          Logging in...
+        </span>
+      </button>
+    </form>
+
+    <div class="login-footer">
+      <p>Don't have an account? <a routerLink="/register">Register here</a></p>
+      <hr>
+      <p class="text-muted small">Demo: Register first, then login</p>
+    </div>
+  </div>
+</div>

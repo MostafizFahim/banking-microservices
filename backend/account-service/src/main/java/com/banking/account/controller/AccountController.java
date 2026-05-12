@@ -4,38 +4,37 @@ import com.banking.account.dto.AccountDTO;
 import com.banking.account.dto.ApiResponse;
 import com.banking.account.dto.TransactionRequest;
 import com.banking.account.entity.Account;
+import com.banking.account.entity.User;
 import com.banking.account.repository.AccountRepository;
 import com.banking.account.entity.Transaction;
 import com.banking.account.repository.TransactionRepository;
+import com.banking.account.repository.UserRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/accounts")
 @RequiredArgsConstructor
 @Slf4j
-
-
-
 public class AccountController {
 
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
+    private final UserRepository userRepository;
 
     // Create new account
     @PostMapping
     public ResponseEntity<?> createAccount(@Valid @RequestBody AccountDTO accountDTO) {
         log.info("Creating new account: {}", accountDTO.getAccountNumber());
 
-        // Check if account already exists
         if (accountRepository.existsByAccountNumber(accountDTO.getAccountNumber())) {
             return ResponseEntity.badRequest()
                     .body(new ApiResponse<>(false, "Account number already exists", null));
@@ -46,7 +45,6 @@ public class AccountController {
                     .body(new ApiResponse<>(false, "Email already registered", null));
         }
 
-        // Convert DTO to Entity
         Account account = new Account();
         account.setAccountNumber(accountDTO.getAccountNumber());
         account.setAccountHolderName(accountDTO.getAccountHolderName());
@@ -55,48 +53,107 @@ public class AccountController {
         account.setAccountType(accountDTO.getAccountType());
         account.setStatus("ACTIVE");
 
-        // Save to database
         Account savedAccount = accountRepository.save(account);
 
-        // Convert back to DTO for response
+        // Link account to current user
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user != null && (user.getAccountNumber() == null || user.getAccountNumber().isEmpty())) {
+            user.setAccountNumber(savedAccount.getAccountNumber());
+            userRepository.save(user);
+            log.info("Linked account {} to user {}", savedAccount.getAccountNumber(), username);
+        }
+
         AccountDTO response = convertToDTO(savedAccount);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new ApiResponse<>(true, "Account created successfully", response));
     }
 
-    // Get all accounts
+    // Get all accounts - ADMIN sees all, CUSTOMER sees only theirs
     @GetMapping
     public ResponseEntity<ApiResponse<List<AccountDTO>>> getAllAccounts() {
         log.info("Fetching all accounts");
-        List<AccountDTO> accounts = accountRepository.findAll()
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username).orElse(null);
+
+        List<AccountDTO> accounts;
+
+        if (user != null && "ADMIN".equals(user.getRole())) {
+            // ADMIN: See all accounts
+            accounts = accountRepository.findAll()
+                    .stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+            log.info("ADMIN {} viewing all {} accounts", username, accounts.size());
+        } else if (user != null && user.getAccountNumber() != null && !user.getAccountNumber().isEmpty()) {
+            // CUSTOMER: See only their own account
+            accounts = accountRepository.findByAccountNumber(user.getAccountNumber())
+                    .stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+            log.info("CUSTOMER {} viewing their account", username);
+        } else {
+            accounts = List.of();
+        }
 
         return ResponseEntity.ok(new ApiResponse<>(true, "Accounts retrieved successfully", accounts));
     }
 
-    // Get account by ID
+    // Get account by ID - FIXED
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<AccountDTO>> getAccountById(@PathVariable String id) {
         log.info("Fetching account by id: {}", id);
 
-        return accountRepository.findById(id)
-                .map(account -> ResponseEntity.ok(new ApiResponse<>(true, "Account found", convertToDTO(account))))
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(new ApiResponse<>(false, "Account not found", null)));
+        java.util.Optional<Account> accountOpt = accountRepository.findById(id);
+
+        if (accountOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse<>(false, "Account not found", null));
+        }
+
+        Account account = accountOpt.get();
+
+        if (!hasPermission(account.getAccountNumber())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "Access denied", null));
+        }
+
+        return ResponseEntity.ok(new ApiResponse<>(true, "Account found", convertToDTO(account)));
     }
 
-    // Get account by account number
+    // Get account by account number - FIXED
     @GetMapping("/number/{accountNumber}")
     public ResponseEntity<ApiResponse<AccountDTO>> getAccountByNumber(@PathVariable String accountNumber) {
         log.info("Fetching account by number: {}", accountNumber);
 
-        return accountRepository.findByAccountNumber(accountNumber)
-                .map(account -> ResponseEntity.ok(new ApiResponse<>(true, "Account found", convertToDTO(account))))
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(new ApiResponse<>(false, "Account not found", null)));
+        java.util.Optional<Account> accountOpt = accountRepository.findByAccountNumber(accountNumber);
+
+        if (accountOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse<>(false, "Account not found", null));
+        }
+
+        Account account = accountOpt.get();
+
+        if (!hasPermission(accountNumber)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "Access denied", null));
+        }
+
+        return ResponseEntity.ok(new ApiResponse<>(true, "Account found", convertToDTO(account)));
+    }
+
+    // Helper method to check permission
+    private boolean hasPermission(String accountNumber) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username).orElse(null);
+
+        if (user == null) return false;
+        if ("ADMIN".equals(user.getRole())) return true;  // ADMIN can access any account
+
+        return accountNumber.equals(user.getAccountNumber());  // CUSTOMER only their own
     }
 
     // Deposit money
@@ -107,6 +164,11 @@ public class AccountController {
 
         log.info("Depositing {} to account: {}", amount, accountNumber);
 
+        if (!hasPermission(accountNumber)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "Access denied", null));
+        }
+
         java.util.Optional<Account> accountOpt = accountRepository.findByAccountNumber(accountNumber);
 
         if (accountOpt.isEmpty()) {
@@ -116,16 +178,12 @@ public class AccountController {
 
         Account account = accountOpt.get();
 
-        // Add status check
         if ("FROZEN".equals(account.getStatus())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(false, "Account is frozen. Cannot deposit.", null));
         }
 
-        // Rest of deposit logic...
-        BigDecimal oldBalance = account.getBalance();
-        BigDecimal newBalance = oldBalance.add(amount);
-        account.setBalance(newBalance);
+        account.setBalance(account.getBalance().add(amount));
         Account updatedAccount = accountRepository.save(account);
 
         return ResponseEntity.ok(new ApiResponse<>(
@@ -135,7 +193,6 @@ public class AccountController {
         ));
     }
 
-
     // Withdraw money
     @PostMapping("/{accountNumber}/withdraw")
     public ResponseEntity<ApiResponse<AccountDTO>> withdraw(
@@ -143,6 +200,11 @@ public class AccountController {
             @RequestParam BigDecimal amount) {
 
         log.info("Withdrawing {} from account: {}", amount, accountNumber);
+
+        if (!hasPermission(accountNumber)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "Access denied", null));
+        }
 
         java.util.Optional<Account> accountOpt = accountRepository.findByAccountNumber(accountNumber);
 
@@ -153,21 +215,17 @@ public class AccountController {
 
         Account account = accountOpt.get();
 
-        // Add status check
         if ("FROZEN".equals(account.getStatus())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(false, "Account is frozen. Cannot withdraw.", null));
         }
 
-        // Rest of withdraw logic...
         if (account.getBalance().compareTo(amount) < 0) {
             return ResponseEntity.badRequest()
                     .body(new ApiResponse<>(false, "Insufficient funds", null));
         }
 
-        BigDecimal oldBalance = account.getBalance();
-        BigDecimal newBalance = oldBalance.subtract(amount);
-        account.setBalance(newBalance);
+        account.setBalance(account.getBalance().subtract(amount));
         Account updatedAccount = accountRepository.save(account);
 
         return ResponseEntity.ok(new ApiResponse<>(
@@ -184,6 +242,11 @@ public class AccountController {
 
         log.info("Processing transaction: {}", request);
 
+        if (!hasPermission(request.getAccountNumber())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "Access denied", null));
+        }
+
         java.util.Optional<Account> accountOpt = accountRepository.findByAccountNumber(request.getAccountNumber());
 
         if (accountOpt.isEmpty()) {
@@ -193,11 +256,9 @@ public class AccountController {
 
         Account account = accountOpt.get();
 
-        // NEW: Check if account is FROZEN
         if ("FROZEN".equals(account.getStatus())) {
             log.warn("Transaction rejected - Account is FROZEN: {}", account.getAccountNumber());
 
-            // Record failed transaction
             Transaction failedTransaction = new Transaction();
             failedTransaction.setAccountId(account.getId());
             failedTransaction.setAccountNumber(account.getAccountNumber());
@@ -213,13 +274,11 @@ public class AccountController {
                     .body(new ApiResponse<>(false, "Account is frozen. Please contact bank to unfreeze.", null));
         }
 
-        // Also check if account is INACTIVE
         if ("INACTIVE".equals(account.getStatus())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(false, "Account is inactive.", null));
         }
 
-        // Rest of your transaction processing logic...
         Transaction transaction = new Transaction();
         transaction.setAccountId(account.getId());
         transaction.setAccountNumber(account.getAccountNumber());
@@ -266,10 +325,19 @@ public class AccountController {
         ));
     }
 
-    // Delete account
+    // Delete account (Admin only)
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteAccount(@PathVariable String id) {
         log.info("Deleting account: {}", id);
+
+        // Check if user is ADMIN
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username).orElse(null);
+
+        if (user == null || !"ADMIN".equals(user.getRole())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "Access denied. Admin only.", null));
+        }
 
         if (!accountRepository.existsById(id)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -280,10 +348,19 @@ public class AccountController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Account deleted successfully", null));
     }
 
-    // Get accounts by status
+    // Get accounts by status (Admin only)
     @GetMapping("/status/{status}")
     public ResponseEntity<ApiResponse<List<AccountDTO>>> getAccountsByStatus(@PathVariable String status) {
         log.info("Fetching accounts with status: {}", status);
+
+        // Check if user is ADMIN
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username).orElse(null);
+
+        if (user == null || !"ADMIN".equals(user.getRole())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "Access denied. Admin only.", null));
+        }
 
         List<AccountDTO> accounts = accountRepository.findByStatus(status)
                 .stream()
@@ -293,12 +370,22 @@ public class AccountController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Accounts retrieved successfully", accounts));
     }
 
+    // Update account status (Admin only)
     @PutMapping("/{accountNumber}/status")
     public ResponseEntity<ApiResponse<AccountDTO>> updateAccountStatus(
             @PathVariable String accountNumber,
             @RequestParam String status) {
 
         log.info("Updating status for account: {} to {}", accountNumber, status);
+
+        // Check if user is ADMIN
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username).orElse(null);
+
+        if (user == null || !"ADMIN".equals(user.getRole())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "Access denied. Admin only.", null));
+        }
 
         return accountRepository.findByAccountNumber(accountNumber)
                 .map(account -> {
