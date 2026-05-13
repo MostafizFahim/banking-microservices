@@ -28,7 +28,6 @@ export class AuthService {
     return this.http.post<ApiResponse<AuthResponse>>(`${this.apiUrl}/auth/login`, { username, password })
       .pipe(
         map(response => {
-          console.log('API Response:', response);
           if (response.success && response.data) {
             return response.data;
           }
@@ -40,7 +39,6 @@ export class AuthService {
             localStorage.setItem('username', authData.username);
             localStorage.setItem('role', authData.role);
             localStorage.setItem('accountNumber', authData.accountNumber || '');
-            console.log('Stored auth data:', authData);
           }
         })
       );

@@ -16,6 +16,7 @@ export class LoginComponent implements OnInit {
   username: string = '';
   password: string = '';
   loading = false;
+  showPassword = false;
 
   constructor(
     private authService: AuthService,
@@ -35,6 +36,10 @@ export class LoginComponent implements OnInit {
     }
   }
 
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
+  }
+
   onSubmit(): void {
     if (!this.username || !this.password) {
       this.notification.showWarning('Please enter username and password');
@@ -49,10 +54,8 @@ export class LoginComponent implements OnInit {
         this.loading = false;
         this.cdr.detectChanges();
 
-        console.log('Auth data received:', authData);
         this.notification.showSuccess('Login successful!');
 
-        // Navigate based on role
         if (authData.role === 'ADMIN') {
           this.router.navigate(['/dashboard']);
         } else if (authData.accountNumber && authData.accountNumber !== '') {
@@ -64,8 +67,6 @@ export class LoginComponent implements OnInit {
       error: (error) => {
         this.loading = false;
         this.cdr.detectChanges();
-
-        console.error('Login error:', error);
         const message = error.message || 'Invalid username or password';
         this.notification.showError(message);
       }

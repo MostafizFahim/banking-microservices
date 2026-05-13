@@ -1,9 +1,18 @@
 .login-container {
-  min-height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 .login-card {
@@ -13,6 +22,7 @@
   width: 100%;
   max-width: 400px;
   box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  margin: 20px;
 }
 
 .login-header {
@@ -23,11 +33,18 @@
 .login-header i {
   color: #667eea;
   margin-bottom: 15px;
+  font-size: 3rem;
 }
 
 .login-header h2 {
   color: #333;
   margin-bottom: 5px;
+  font-size: 1.8rem;
+}
+
+.login-header p {
+  color: #666;
+  font-size: 0.9rem;
 }
 
 .form-group {
@@ -39,32 +56,60 @@
   margin-bottom: 8px;
   color: #555;
   font-weight: 500;
+  font-size: 0.9rem;
 }
 
 .input-group {
   position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
 }
 
 .input-icon {
   position: absolute;
-  left: 15px;
+  left: 12px;
   top: 50%;
   transform: translateY(-50%);
   color: #999;
+  z-index: 10;
+  font-size: 1rem;
+  background: transparent;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  transition: color 0.3s ease;
+}
+
+/* Icon changes color on hover over the input group */
+.input-group:hover .input-icon {
+  color: #667eea;
 }
 
 .form-control {
   width: 100%;
-  padding: 12px 15px 12px 45px;
+  padding: 12px 15px 12px 42px;
   border: 2px solid #e0e0e0;
   border-radius: 10px;
-  font-size: 16px;
+  font-size: 1rem;
   transition: all 0.3s;
+  box-sizing: border-box;
+  background: white;
+  position: relative;
+  z-index: 1;
+}
+
+.form-control:hover {
+  border-color: #667eea;
 }
 
 .form-control:focus {
   border-color: #667eea;
   outline: none;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .btn-login {
@@ -74,18 +119,61 @@
   color: white;
   border: none;
   border-radius: 10px;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: all 0.3s;
 }
 
-.btn-login:hover {
+.btn-login:hover:not(:disabled) {
   transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-login:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .login-footer {
   text-align: center;
   margin-top: 20px;
   color: #666;
+  font-size: 0.9rem;
+}
+
+.login-footer a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.login-footer a:hover {
+  text-decoration: underline;
+}
+
+.password-group {
+  position: relative;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #999;
+  z-index: 10;
+  transition: color 0.3s ease;
+  background: white;
+  padding: 0 5px;
+}
+
+.password-toggle:hover {
+  color: #667eea;
+}
+
+/* Adjust input padding for password fields */
+.password-group .form-control {
+  padding-right: 40px;
 }

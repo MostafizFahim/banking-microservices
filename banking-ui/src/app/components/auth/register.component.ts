@@ -18,18 +18,47 @@ export class RegisterComponent {
   password: string = '';
   confirmPassword: string = '';
   loading = false;
+  showPassword = false;
+  showConfirmPassword = false;
 
   constructor(
     private authService: AuthService,
     private router: Router,
     private notification: NotificationService,
-    private cdr: ChangeDetectorRef  // Add this
+    private cdr: ChangeDetectorRef
   ) {}
 
+  get isValidEmail(): boolean {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(this.email);
+  }
+
+  isFormValid(): boolean {
+    return this.username &&
+           this.email &&
+           this.isValidEmail &&
+           this.password &&
+           this.confirmPassword &&
+           this.password === this.confirmPassword &&
+           this.password.length >= 6;
+  }
+
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
+  }
+
+  toggleConfirmPasswordVisibility(): void {
+    this.showConfirmPassword = !this.showConfirmPassword;
+  }
+
   onSubmit(): void {
-    // Validation
-    if (!this.username || !this.password) {
-      this.notification.showWarning('Please fill all required fields');
+    if (!this.username || !this.password || !this.email) {
+      this.notification.showWarning('Please fill all fields');
+      return;
+    }
+
+    if (!this.isValidEmail) {
+      this.notification.showWarning('Please enter a valid email address');
       return;
     }
 
@@ -46,10 +75,7 @@ export class RegisterComponent {
     this.loading = true;
     this.cdr.detectChanges();
 
-    // Pass email only if provided
-    const email = this.email || `${this.username}@bank.com`;
-
-    this.authService.register(this.username, this.password, email).subscribe({
+    this.authService.register(this.username, this.password, this.email).subscribe({
       next: (response) => {
         this.loading = false;
         this.cdr.detectChanges();

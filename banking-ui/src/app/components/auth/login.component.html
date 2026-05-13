@@ -11,15 +11,18 @@
         <label>Username</label>
         <div class="input-group">
           <span class="input-icon"><i class="fas fa-user"></i></span>
-          <input type="text" class="form-control" [(ngModel)]="username" name="username" required>
+          <input type="text" class="form-control" [(ngModel)]="username" name="username" placeholder="Enter username" required>
         </div>
       </div>
 
       <div class="form-group">
         <label>Password</label>
-        <div class="input-group">
+        <div class="input-group password-group">
           <span class="input-icon"><i class="fas fa-lock"></i></span>
-          <input type="password" class="form-control" [(ngModel)]="password" name="password" required>
+          <input [type]="showPassword ? 'text' : 'password'" class="form-control" [(ngModel)]="password" name="password" placeholder="Enter password" required>
+          <span class="password-toggle" (click)="togglePasswordVisibility()">
+            <i [class]="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+          </span>
         </div>
       </div>
 
@@ -34,8 +37,6 @@
 
     <div class="login-footer">
       <p>Don't have an account? <a routerLink="/register">Register here</a></p>
-      <hr>
-      <p class="text-muted small">Demo: Register first, then login</p>
     </div>
   </div>
 </div>
