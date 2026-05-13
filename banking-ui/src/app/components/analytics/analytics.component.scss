@@ -1,0 +1,120 @@
+.analytics-container {
+  min-height: 100vh;
+  background: var(--off-white);
+}
+
+.stat-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-normal);
+  border: 1px solid var(--border-color);
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.stat-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.stat-card.deposits .stat-icon {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.stat-card.withdrawals .stat-icon {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.stat-card.balance .stat-icon {
+  background: var(--primary-bg);
+  color: var(--primary);
+}
+
+.stat-card.transactions .stat-icon {
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+.stat-info {
+  flex: 1;
+}
+
+.stat-info h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--dark);
+}
+
+.stat-info p {
+  margin: 0;
+  color: var(--gray);
+  font-size: 0.85rem;
+}
+
+.chart-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-header {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--white);
+}
+
+.chart-header h5 {
+  margin: 0;
+  color: var(--dark);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.chart-body {
+  padding: var(--spacing-lg);
+  flex: 1;
+  position: relative;
+}
+
+canvas {
+  max-height: 300px;
+  width: 100%;
+}
+
+.empty-state {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+}
+
+@media (max-width: 768px) {
+  .stat-card {
+    margin-bottom: var(--spacing-md);
+  }
+
+  .chart-card {
+    margin-bottom: var(--spacing-lg);
+    height: 350px;
+  }
+}
