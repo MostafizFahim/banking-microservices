@@ -1,9 +1,9 @@
-import { Component, OnInit, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, AfterViewInit, ElementRef, ViewChild, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import Chart from 'chart.js/auto';
+import { catchError, of, timeout } from 'rxjs';
 import { AccountService } from '../../services/account.service';
-import { AuthService } from '../../services/auth.service';
 import { Transaction } from '../../models/transaction.model';
 
 @Component({
@@ -13,13 +13,18 @@ import { Transaction } from '../../models/transaction.model';
   templateUrl: './analytics.component.html',
   styleUrls: ['./analytics.component.scss']
 })
-export class AnalyticsComponent implements OnInit, AfterViewInit {
+export class AnalyticsComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('barChart') barChartCanvas!: ElementRef;
   @ViewChild('pieChart') pieChartCanvas!: ElementRef;
   @ViewChild('lineChart') lineChartCanvas!: ElementRef;
 
+  private barChart?: Chart;
+  private pieChart?: Chart;
+  private lineChart?: Chart;
+
   loading = true;
   transactions: Transaction[] = [];
+  analyticsError = '';
 
   totalDeposits = 0;
   totalWithdrawals = 0;
@@ -27,7 +32,7 @@ export class AnalyticsComponent implements OnInit, AfterViewInit {
 
   constructor(
     private accountService: AccountService,
-    private authService: AuthService
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -40,26 +45,30 @@ export class AnalyticsComponent implements OnInit, AfterViewInit {
     }
   }
 
+  ngOnDestroy(): void {
+    this.destroyCharts();
+  }
+
   loadData(): void {
     this.loading = true;
-    const accountNumber = this.authService.getAccountNumber();
-
-    if (accountNumber) {
-      this.accountService.getAccountTransactions(accountNumber).subscribe({
-        next: (transactions) => {
-          this.transactions = transactions;
+    this.analyticsError = '';
+    this.accountService.getMyTransactions().pipe(
+      timeout(10000),
+      catchError(() => {
+        return of(null);
+      })
+    ).subscribe({
+      next: (transactions) => {
+        this.scheduleViewUpdate(() => {
+          this.transactions = transactions || [];
+          this.analyticsError = transactions
+            ? ''
+            : 'Unable to load analytics data. Check that the backend is running and try again.';
           this.calculateStats();
           this.loading = false;
-          setTimeout(() => this.createCharts(), 100);
-        },
-        error: (error) => {
-          console.error('Error loading transactions:', error);
-          this.loading = false;
-        }
-      });
-    } else {
-      this.loading = false;
-    }
+        });
+      }
+    });
   }
 
   calculateStats(): void {
@@ -87,6 +96,7 @@ export class AnalyticsComponent implements OnInit, AfterViewInit {
   }
 
   createBarChart(): void {
+    this.barChart?.destroy();
     const monthlyDeposits = new Array(12).fill(0);
     const monthlyWithdrawals = new Array(12).fill(0);
 
@@ -101,7 +111,7 @@ export class AnalyticsComponent implements OnInit, AfterViewInit {
       }
     });
 
-    new Chart(this.barChartCanvas.nativeElement, {
+    this.barChart = new Chart(this.barChartCanvas.nativeElement, {
       type: 'bar',
       data: {
         labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
@@ -115,6 +125,7 @@ export class AnalyticsComponent implements OnInit, AfterViewInit {
   }
 
   createPieChart(): void {
+    this.pieChart?.destroy();
     let deposits = 0;
     let withdrawals = 0;
 
@@ -126,7 +137,7 @@ export class AnalyticsComponent implements OnInit, AfterViewInit {
       }
     });
 
-    new Chart(this.pieChartCanvas.nativeElement, {
+    this.pieChart = new Chart(this.pieChartCanvas.nativeElement, {
       type: 'pie',
       data: {
         labels: ['Deposits', 'Withdrawals'],
@@ -137,6 +148,7 @@ export class AnalyticsComponent implements OnInit, AfterViewInit {
   }
 
   createLineChart(): void {
+    this.lineChart?.destroy();
     const balanceHistory: number[] = [];
     let currentBalance = 0;
 
@@ -152,7 +164,7 @@ export class AnalyticsComponent implements OnInit, AfterViewInit {
     const last10 = balanceHistory.slice(-10);
     const labels = last10.map((_, i) => `Tx ${i + 1}`);
 
-    new Chart(this.lineChartCanvas.nativeElement, {
+    this.lineChart = new Chart(this.lineChartCanvas.nativeElement, {
       type: 'line',
       data: {
         labels: labels,
@@ -166,6 +178,20 @@ export class AnalyticsComponent implements OnInit, AfterViewInit {
         }]
       },
       options: { responsive: true, maintainAspectRatio: false }
+    });
+  }
+
+  private destroyCharts(): void {
+    this.barChart?.destroy();
+    this.pieChart?.destroy();
+    this.lineChart?.destroy();
+  }
+
+  private scheduleViewUpdate(update: () => void): void {
+    setTimeout(() => {
+      update();
+      this.cdr.detectChanges();
+      setTimeout(() => this.createCharts(), 100);
     });
   }
 }

@@ -4,6 +4,7 @@ import com.banking.account.dto.AuthRequest;
 import com.banking.account.dto.AuthResponse;
 import com.banking.account.dto.ApiResponse;
 import com.banking.account.entity.User;
+import com.banking.account.repository.AccountRepository;
 import com.banking.account.repository.UserRepository;
 import com.banking.account.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -12,8 +13,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -21,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final UserRepository userRepository;
+    private final AccountRepository accountRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
@@ -33,6 +38,10 @@ public class AuthController {
         if (userRepository.existsByUsername(request.getUsername())) {
             return ResponseEntity.badRequest()
                     .body(new ApiResponse<>(false, "Username already exists", null));
+        }
+        if (request.getEmail() != null && userRepository.existsByEmail(request.getEmail())) {
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse<>(false, "Email already exists", null));
         }
 
         User user = new User();
@@ -54,13 +63,16 @@ public class AuthController {
             );
 
             User user = userRepository.findByUsername(request.getUsername()).orElseThrow();
-            String token = jwtService.generateToken(user.getUsername(), user.getRole(), user.getAccountNumber());
+            List<String> accountNumbers = getAccountNumbers(user);
+            String defaultAccountNumber = accountNumbers.isEmpty() ? "" : accountNumbers.get(0);
+            String token = jwtService.generateToken(user.getUsername(), user.getRole(), defaultAccountNumber);
 
             AuthResponse response = new AuthResponse(
                     token,
                     user.getUsername(),
                     user.getRole(),
-                    user.getAccountNumber()
+                    defaultAccountNumber,
+                    accountNumbers
             );
 
             return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", response));
@@ -83,9 +95,18 @@ public class AuthController {
                     .body(new ApiResponse<>(false, "Invalid admin key", null));
         }
 
+        if (userRepository.existsByRole("ADMIN") && !isCurrentUserAdmin()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "Admin registration requires an existing admin", null));
+        }
+
         if (userRepository.existsByUsername(request.getUsername())) {
             return ResponseEntity.badRequest()
                     .body(new ApiResponse<>(false, "Username already exists", null));
+        }
+        if (request.getEmail() != null && userRepository.existsByEmail(request.getEmail())) {
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse<>(false, "Email already exists", null));
         }
 
         User user = new User();
@@ -97,5 +118,29 @@ public class AuthController {
 
         User savedUser = userRepository.save(user);
         return ResponseEntity.ok(new ApiResponse<>(true, "Admin registered successfully", savedUser));
+    }
+
+    private List<String> getAccountNumbers(User user) {
+        List<String> accountNumbers = accountRepository.findByOwnerUsernameOrderByCreatedAtDesc(user.getUsername())
+                .stream()
+                .map(account -> account.getAccountNumber())
+                .toList();
+
+        if (accountNumbers.isEmpty() && user.getAccountNumber() != null && !user.getAccountNumber().isBlank()) {
+            return List.of(user.getAccountNumber());
+        }
+
+        return accountNumbers;
+    }
+
+    private boolean isCurrentUserAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            return false;
+        }
+
+        return userRepository.findByUsername(authentication.getName())
+                .map(user -> "ADMIN".equals(user.getRole()))
+                .orElse(false);
     }
 }

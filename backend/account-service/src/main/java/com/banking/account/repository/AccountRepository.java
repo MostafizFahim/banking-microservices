@@ -11,11 +11,11 @@ public interface AccountRepository extends JpaRepository<Account, String> {
 
     Optional<Account> findByAccountNumber(String accountNumber);
 
+    List<Account> findByOwnerUsernameOrderByCreatedAtDesc(String ownerUsername);
+
     List<Account> findByAccountHolderNameContainingIgnoreCase(String name);
 
     List<Account> findByStatus(String status);
 
     boolean existsByAccountNumber(String accountNumber);
-
-    boolean existsByEmail(String email);
 }

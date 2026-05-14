@@ -2,22 +2,32 @@ package com.banking.account.controller;
 
 import com.banking.account.dto.AccountDTO;
 import com.banking.account.dto.TransactionRequest;
+import com.banking.account.config.SecurityConfig;
 import com.banking.account.entity.Account;
+import com.banking.account.entity.User;
 import com.banking.account.repository.AccountRepository;
 import com.banking.account.repository.TransactionRepository;
+import com.banking.account.repository.UserRepository;
+import com.banking.account.security.JwtAuthenticationFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -27,7 +37,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(SpringExtension.class)
-@WebMvcTest(AccountController.class)
+@WebMvcTest(
+        controllers = AccountController.class,
+        excludeFilters = @ComponentScan.Filter(
+                type = FilterType.ASSIGNABLE_TYPE,
+                classes = {SecurityConfig.class, JwtAuthenticationFilter.class}))
+@AutoConfigureMockMvc(addFilters = false)
 public class AccountControllerTest {
 
     @Autowired
@@ -39,11 +54,15 @@ public class AccountControllerTest {
     @MockBean
     private TransactionRepository transactionRepository;
 
+    @MockBean
+    private UserRepository userRepository;
+
     @Autowired
     private ObjectMapper objectMapper;
 
     private Account testAccount;
     private AccountDTO testAccountDTO;
+    private User testUser;
 
     @BeforeEach
     void setUp() {
@@ -52,6 +71,7 @@ public class AccountControllerTest {
         testAccount.setAccountNumber("1234567890");
         testAccount.setAccountHolderName("John Doe");
         testAccount.setEmail("john@test.com");
+        testAccount.setOwnerUsername("admin");
         testAccount.setBalance(new BigDecimal("1000.00"));
         testAccount.setAccountType("SAVINGS");
         testAccount.setStatus("ACTIVE");
@@ -62,12 +82,22 @@ public class AccountControllerTest {
         testAccountDTO.setEmail("john@test.com");
         testAccountDTO.setBalance(new BigDecimal("1000.00"));
         testAccountDTO.setAccountType("SAVINGS");
+
+        testUser = new User();
+        testUser.setUsername("admin");
+        testUser.setEmail("admin@test.com");
+        testUser.setPassword("password");
+        testUser.setRole("ADMIN");
+        testUser.setAccountNumber("1234567890");
+
+        when(userRepository.findByUsername(anyString())).thenReturn(Optional.of(testUser));
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", null, Collections.emptyList()));
     }
 
     @Test
     void testCreateAccount_Success() throws Exception {
         when(accountRepository.existsByAccountNumber(anyString())).thenReturn(false);
-        when(accountRepository.existsByEmail(anyString())).thenReturn(false);
         when(accountRepository.save(any(Account.class))).thenReturn(testAccount);
 
         mockMvc.perform(post("/api/accounts")
@@ -92,16 +122,15 @@ public class AccountControllerTest {
     }
 
     @Test
-    void testCreateAccount_DuplicateEmail() throws Exception {
+    void testCreateAccount_AllowsSameEmailForMultipleAccounts() throws Exception {
         when(accountRepository.existsByAccountNumber(anyString())).thenReturn(false);
-        when(accountRepository.existsByEmail(anyString())).thenReturn(true);
+        when(accountRepository.save(any(Account.class))).thenReturn(testAccount);
 
         mockMvc.perform(post("/api/accounts")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testAccountDTO)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Email already registered"));
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true));
     }
 
     @Test
@@ -111,6 +140,7 @@ public class AccountControllerTest {
         secondAccount.setAccountNumber("0987654321");
         secondAccount.setAccountHolderName("Jane Smith");
         secondAccount.setEmail("jane@test.com");
+        secondAccount.setOwnerUsername("admin");
         secondAccount.setBalance(new BigDecimal("2500.00"));
         secondAccount.setAccountType("CHECKING");
         secondAccount.setStatus("ACTIVE");

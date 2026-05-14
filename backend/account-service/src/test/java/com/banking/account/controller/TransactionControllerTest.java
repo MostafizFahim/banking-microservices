@@ -1,28 +1,46 @@
 package com.banking.account.controller;
 
+import com.banking.account.config.SecurityConfig;
+import com.banking.account.entity.Account;
 import com.banking.account.entity.Transaction;
+import com.banking.account.entity.User;
+import com.banking.account.repository.AccountRepository;
 import com.banking.account.repository.TransactionRepository;
+import com.banking.account.repository.UserRepository;
+import com.banking.account.security.JwtAuthenticationFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @ExtendWith(SpringExtension.class)
-@WebMvcTest(TransactionController.class)
+@WebMvcTest(
+        controllers = TransactionController.class,
+        excludeFilters = @ComponentScan.Filter(
+                type = FilterType.ASSIGNABLE_TYPE,
+                classes = {SecurityConfig.class, JwtAuthenticationFilter.class}))
+@AutoConfigureMockMvc(addFilters = false)
 public class TransactionControllerTest {
 
     @Autowired
@@ -31,11 +49,19 @@ public class TransactionControllerTest {
     @MockBean
     private TransactionRepository transactionRepository;
 
+    @MockBean
+    private AccountRepository accountRepository;
+
+    @MockBean
+    private UserRepository userRepository;
+
     @Autowired
     private ObjectMapper objectMapper;
 
     private Transaction depositTransaction;
     private Transaction withdrawalTransaction;
+    private Account testAccount;
+    private User testUser;
 
     @BeforeEach
     void setUp() {
@@ -58,6 +84,21 @@ public class TransactionControllerTest {
         withdrawalTransaction.setStatus("COMPLETED");
         withdrawalTransaction.setReference("TXN123457");
         withdrawalTransaction.setTimestamp(LocalDateTime.now().minusHours(1));
+
+        testAccount = new Account();
+        testAccount.setAccountNumber("1234567890");
+        testAccount.setOwnerUsername("admin");
+
+        testUser = new User();
+        testUser.setUsername("admin");
+        testUser.setRole("ADMIN");
+        testUser.setAccountNumber("1234567890");
+
+        when(userRepository.findByUsername(anyString())).thenReturn(Optional.of(testUser));
+        when(accountRepository.findByAccountNumber("1234567890")).thenReturn(Optional.of(testAccount));
+        when(accountRepository.findAll()).thenReturn(Arrays.asList(testAccount));
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", null, Collections.emptyList()));
     }
 
     @Test
@@ -85,7 +126,7 @@ public class TransactionControllerTest {
 
     @Test
     void testGetTransactionByReference() throws Exception {
-        when(transactionRepository.findById("TXN123456")).thenReturn(Optional.of(depositTransaction));
+        when(transactionRepository.findByReference("TXN123456")).thenReturn(Optional.of(depositTransaction));
 
         mockMvc.perform(get("/api/transactions/reference/TXN123456"))
                 .andExpect(status().isOk())

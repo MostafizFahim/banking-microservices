@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import java.security.Key;
@@ -15,7 +16,8 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    private static final String SECRET_KEY = "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970";
+    @Value("${jwt.secret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}")
+    private String secretKey;
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -49,7 +51,7 @@ public class JwtService {
     public String generateToken(String username, String role, String accountNumber) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
-        claims.put("accountNumber", accountNumber);
+        claims.put("accountNumber", accountNumber == null ? "" : accountNumber);
         return createToken(claims, username);
     }
 
@@ -63,13 +65,11 @@ public class JwtService {
                 .compact();
     }
 
-    // Method 1: Update existing validateToken to accept UserDetails
     public Boolean validateToken(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
     }
 
-    // Method 2: Keep the old method for backward compatibility (optional)
     public Boolean validateToken(String token) {
         try {
             return !isTokenExpired(token);
@@ -79,7 +79,7 @@ public class JwtService {
     }
 
     private Key getSignKey() {
-        byte[] keyBytes = java.util.Base64.getDecoder().decode(SECRET_KEY);
+        byte[] keyBytes = java.util.Base64.getDecoder().decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }

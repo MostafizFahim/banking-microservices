@@ -2,7 +2,7 @@
   <!-- Header with Back Button -->
   <div class="row mb-4">
     <div class="col-12">
-      <button class="btn btn-outline-secondary mb-3" (click)="goBack()" [disabled]="loading">
+      <button class="btn btn-outline-secondary mb-3" (click)="goBack()">
         <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
       </button>
 
@@ -119,6 +119,7 @@
               </span>
             </div>
             <button class="btn"
+                    *ngIf="isAdmin"
                     [ngClass]="{
                       'btn-warning': account.status === 'ACTIVE',
                       'btn-success': account.status === 'FROZEN'
@@ -176,8 +177,7 @@
                   </div>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
-                  <button type="submit" class="btn btn-success w-100"
-                          [disabled]="transactionForm.invalid || submitting">
+                  <button type="submit" class="btn btn-success w-100">
                     <i class="fas fa-paper-plane me-2"></i>
                     <span *ngIf="!submitting">Submit</span>
                     <span *ngIf="submitting">
@@ -192,12 +192,6 @@
         </div>
       </div>
     </div>
-
-<!--    &lt;!&ndash; Debug Info (remove after testing) &ndash;&gt;-->
-<!--    <div class="alert alert-info small mb-3" *ngIf="!loadingTransactions && originalTransactions.length > 0">-->
-<!--      <strong>Debug:</strong> Found {{originalTransactions.length}} total transactions,-->
-<!--      showing {{filteredTransactions.length}} after filters-->
-<!--    </div>-->
 
     <!-- Loading indicator for transactions -->
     <div *ngIf="loadingTransactions" class="text-center my-3">

@@ -15,8 +15,7 @@ public class AccountDTO {
 
     private String id;
 
-    @NotBlank(message = "Account number is required")
-    @Pattern(regexp = "^[0-9]{10}$", message = "Account number must be 10 digits")
+    @Pattern(regexp = "^$|^[0-9]{10}$", message = "Account number must be 10 digits")
     private String accountNumber;
 
     @NotBlank(message = "Account holder name is required")
@@ -26,6 +25,8 @@ public class AccountDTO {
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
     private String email;
+
+    private String ownerUsername;
 
     @NotNull(message = "Initial balance is required")
     @DecimalMin(value = "0.0", inclusive = true, message = "Balance cannot be negative")

@@ -8,6 +8,7 @@ export interface AuthResponse {
   username: string;
   role: string;
   accountNumber: string;
+  accountNumbers?: string[];
 }
 
 export interface ApiResponse<T> {
@@ -39,6 +40,7 @@ export class AuthService {
             localStorage.setItem('username', authData.username);
             localStorage.setItem('role', authData.role);
             localStorage.setItem('accountNumber', authData.accountNumber || '');
+            localStorage.setItem('accountNumbers', JSON.stringify(authData.accountNumbers || []));
           }
         })
       );
@@ -70,5 +72,23 @@ export class AuthService {
 
   getAccountNumber(): string | null {
     return localStorage.getItem('accountNumber');
+  }
+
+  setAccountNumber(accountNumber: string): void {
+    localStorage.setItem('accountNumber', accountNumber);
+  }
+
+  getAccountNumbers(): string[] {
+    const stored = localStorage.getItem('accountNumbers');
+    if (!stored) {
+      const accountNumber = this.getAccountNumber();
+      return accountNumber ? [accountNumber] : [];
+    }
+
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return [];
+    }
   }
 }

@@ -6,7 +6,7 @@ import { Account, AccountDTO } from '../models/account.model';
 import { ApiResponse } from '../models/api-response.model';
 import { Transaction, TransactionRequest, TransactionSummary } from '../models/transaction.model';
 import { NotificationService } from './notification.service';
-import { AuthService } from './auth.service'; // Import AuthService
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -18,26 +18,20 @@ export class AccountService {
   constructor(
     private http: HttpClient,
     private notification: NotificationService,
-    private authService: AuthService // Inject AuthService
+    private authService: AuthService
   ) {}
 
-  // Helper method to get auth headers
   private getAuthHeaders(): HttpHeaders {
-    const token = this.authService.getToken(); // or localStorage.getItem('token')
+    const token = this.authService.getToken();
     return new HttpHeaders({
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     });
   }
 
-  // Account endpoints
   getAllAccounts(): Observable<Account[]> {
-    console.log('Fetching all accounts...');
-
-    // Check if token exists
     const token = this.authService.getToken();
     if (!token) {
-      console.error('No authentication token found');
       this.notification.showError('Please login first');
       return of([]);
     }
@@ -46,7 +40,6 @@ export class AccountService {
       headers: this.getAuthHeaders()
     }).pipe(
       timeout(this.timeoutMs),
-      tap(response => console.log('Accounts response:', response)),
       map(response => {
         if (response.success) {
           return response.data || [];
@@ -68,26 +61,22 @@ export class AccountService {
   }
 
   getAccountByNumber(accountNumber: string): Observable<Account | null> {
-    console.log('Fetching account by number:', accountNumber);
     return this.http.get<ApiResponse<Account>>(`${this.apiUrl}/accounts/number/${accountNumber}`, {
       headers: this.getAuthHeaders()
     }).pipe(
       timeout(this.timeoutMs),
-      tap(response => console.log('Account response:', response)),
       map(response => response.success ? response.data : null),
       catchError(this.handleError<Account | null>('getAccountByNumber', null))
     );
   }
 
   createAccount(account: AccountDTO): Observable<Account | null> {
-    console.log('Creating account:', account);
     return this.http.post<ApiResponse<Account>>(`${this.apiUrl}/accounts`, account, {
       headers: this.getAuthHeaders()
     }).pipe(
       timeout(this.timeoutMs),
       tap(response => {
-        console.log('Create account response:', response);
-        if (response.success) {
+        if (response.success && response.data) {
           this.notification.showSuccess(response.message || 'Account created successfully');
         }
       }),
@@ -96,7 +85,6 @@ export class AccountService {
     );
   }
 
-  // Transaction endpoints
   deposit(accountNumber: string, amount: number): Observable<Account | null> {
     return this.http.post<ApiResponse<Account>>(
       `${this.apiUrl}/accounts/${accountNumber}/deposit?amount=${amount}`,
@@ -156,6 +144,16 @@ export class AccountService {
     );
   }
 
+  getMyTransactions(): Observable<Transaction[]> {
+    return this.http.get<ApiResponse<Transaction[]>>(`${this.apiUrl}/transactions/my`, {
+      headers: this.getAuthHeaders()
+    }).pipe(
+      timeout(this.timeoutMs),
+      map(response => response.success ? response.data || [] : []),
+      catchError(this.handleError<Transaction[]>('getMyTransactions', []))
+    );
+  }
+
   getTransactionSummary(accountNumber: string): Observable<TransactionSummary | null> {
     return this.http.get<ApiResponse<TransactionSummary>>(`${this.apiUrl}/transactions/account/${accountNumber}/summary`, {
       headers: this.getAuthHeaders()
@@ -167,7 +165,6 @@ export class AccountService {
   }
 
   updateAccountStatus(accountNumber: string, status: string): Observable<Account | null> {
-    console.log(`Updating account ${accountNumber} status to: ${status}`);
     return this.http.put<ApiResponse<Account>>(
       `${this.apiUrl}/accounts/${accountNumber}/status?status=${status}`,
       {},
@@ -184,11 +181,8 @@ export class AccountService {
     );
   }
 
-  // Error handler
   private handleError<T>(operation = 'operation', result?: T) {
     return (error: any): Observable<T> => {
-      console.error(`${operation} failed:`, error);
-
       let errorMessage = 'An error occurred';
 
       if (error.name === 'TimeoutError') {
@@ -198,7 +192,6 @@ export class AccountService {
           errorMessage = 'Cannot connect to server. Is the backend running?';
         } else if (error.status === 401) {
           errorMessage = 'Unauthorized. Please login again.';
-          // Redirect to login page
           this.authService.logout();
         } else if (error.status === 403) {
           errorMessage = 'Access forbidden. You don\'t have permission to access this resource.';

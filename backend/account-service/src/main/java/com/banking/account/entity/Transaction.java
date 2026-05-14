@@ -17,33 +17,35 @@ public class Transaction {
     private String id;
 
     @Column(nullable = false)
-    private String accountId;  // References Account.id
+    private String accountId;
 
     @Column(nullable = false)
-    private String accountNumber;  // For easy lookup
+    private String accountNumber;
 
     @Column(nullable = false)
-    private String transactionType;  // DEPOSIT, WITHDRAWAL
+    private String transactionType;
 
     @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal amount;
 
-    private BigDecimal balanceAfter;  // Balance after transaction
+    private BigDecimal balanceAfter;
 
     private String description;
 
     @Column(nullable = false)
-    private String status;  // COMPLETED, FAILED
+    private String status;
 
-    @Column(nullable = false)
-    private String reference;  // Unique transaction reference
+    @Column(nullable = false, unique = true)
+    private String reference;
 
     @Column(nullable = false)
     private LocalDateTime timestamp;
 
     @PrePersist
     protected void onCreate() {
-        timestamp = LocalDateTime.now();
+        if (timestamp == null) {
+            timestamp = LocalDateTime.now();
+        }
         if (reference == null) {
             reference = "TXN" + System.currentTimeMillis() + (int)(Math.random() * 1000);
         }

@@ -3,6 +3,7 @@ export interface Account {
   accountNumber: string;
   accountHolderName: string;
   email: string;
+  ownerUsername?: string;
   balance: number;
   accountType: string;
   status: string;
@@ -11,7 +12,7 @@ export interface Account {
 }
 
 export interface AccountDTO {
-  accountNumber: string;
+  accountNumber?: string;
   accountHolderName: string;
   email: string;
   balance: number;

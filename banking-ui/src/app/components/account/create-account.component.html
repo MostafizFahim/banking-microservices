@@ -13,19 +13,6 @@
         </div>
         <div class="card-body">
           <form [formGroup]="accountForm" (ngSubmit)="onSubmit()">
-            <!-- Account Number -->
-            <div class="mb-3">
-              <label class="form-label">Account Number <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" 
-                     [class.is-invalid]="submitted && f['accountNumber'].errors"
-                     formControlName="accountNumber" 
-                     placeholder="Enter 10-digit account number">
-              <div *ngIf="submitted && f['accountNumber'].errors" class="invalid-feedback">
-                <div *ngIf="f['accountNumber'].errors['required']">Account number is required</div>
-                <div *ngIf="f['accountNumber'].errors['pattern']">Account number must be 10 digits</div>
-              </div>
-            </div>
-
             <!-- Account Holder Name -->
             <div class="mb-3">
               <label class="form-label">Account Holder Name <span class="text-danger">*</span></label>

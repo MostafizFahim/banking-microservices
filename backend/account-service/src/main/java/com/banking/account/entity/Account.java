@@ -24,8 +24,10 @@ public class Account {
     @Column(nullable = false)
     private String accountHolderName;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String email;
+
+    private String ownerUsername;
 
     @Column(nullable = false)
     private BigDecimal balance;

@@ -7,5 +7,5 @@ public class AuthRequest {
     private String username;
     private String password;
     private String email;
-    private String adminKey;  // Add this for admin registration
+    private String adminKey;
 }
