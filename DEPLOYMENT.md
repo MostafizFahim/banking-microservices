@@ -12,19 +12,19 @@ Supabase Edge Functions deploy TypeScript functions on a Deno-compatible runtime
 
 Create a Supabase project and copy the PostgreSQL connection details from the Supabase dashboard.
 
-For the backend, configure the JDBC URL in this shape:
+For the backend, configure the JDBC URL from Supabase's **Session pooler** connection string:
 
 ```text
-jdbc:postgresql://db.mtjwllwyiycctdvinnyv.supabase.co:5432/postgres?sslmode=require
+jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres?sslmode=require
 ```
 
-If you use Supabase's pooled connection string, convert the `postgresql://...` URL to JDBC format and keep `sslmode=require`.
+Use the pooler username exactly as Supabase shows it for this project.
 
 Set these Railway variables from Supabase:
 
 ```text
-JDBC_DATABASE_URL=jdbc:postgresql://db.mtjwllwyiycctdvinnyv.supabase.co:5432/postgres?sslmode=require
-DATABASE_USER=postgres
+JDBC_DATABASE_URL=jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres?sslmode=require
+DATABASE_USER=postgres.mtjwllwyiycctdvinnyv
 DATABASE_PASSWORD=<supabase-db-password>
 ```
 
@@ -45,8 +45,8 @@ Add these Railway variables:
 
 ```text
 SPRING_PROFILES_ACTIVE=prod
-JDBC_DATABASE_URL=jdbc:postgresql://db.mtjwllwyiycctdvinnyv.supabase.co:5432/postgres?sslmode=require
-DATABASE_USER=postgres
+JDBC_DATABASE_URL=jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres?sslmode=require
+DATABASE_USER=postgres.mtjwllwyiycctdvinnyv
 DATABASE_PASSWORD=<supabase-db-password>
 ADMIN_SECRET_KEY=<strong-admin-registration-secret>
 JWT_SECRET=<stable-strong-jwt-secret>
