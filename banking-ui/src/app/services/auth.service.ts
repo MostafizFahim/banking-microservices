@@ -59,7 +59,14 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem('token');
+    const token = localStorage.getItem('token');
+
+    if (token && this.isTokenExpired(token)) {
+      this.logout();
+      return null;
+    }
+
+    return token;
   }
 
   isLoggedIn(): boolean {
@@ -67,10 +74,18 @@ export class AuthService {
   }
 
   getRole(): string | null {
+    if (!this.getToken()) {
+      return null;
+    }
+
     return localStorage.getItem('role');
   }
 
   getAccountNumber(): string | null {
+    if (!this.getToken()) {
+      return null;
+    }
+
     return localStorage.getItem('accountNumber');
   }
 
@@ -79,6 +94,10 @@ export class AuthService {
   }
 
   getAccountNumbers(): string[] {
+    if (!this.getToken()) {
+      return [];
+    }
+
     const stored = localStorage.getItem('accountNumbers');
     if (!stored) {
       const accountNumber = this.getAccountNumber();
@@ -89,6 +108,19 @@ export class AuthService {
       return JSON.parse(stored);
     } catch {
       return [];
+    }
+  }
+
+  private isTokenExpired(token: string): boolean {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (!payload.exp) {
+        return true;
+      }
+
+      return payload.exp * 1000 <= Date.now();
+    } catch {
+      return true;
     }
   }
 }

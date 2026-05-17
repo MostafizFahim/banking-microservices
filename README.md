@@ -1,15 +1,15 @@
 # Banking Microservices Application
 
-A production-deployed full-stack banking application built with **Spring Boot** and **Angular**. The system includes **JWT authentication**, **role-based access control**, account management, transaction processing, analytics dashboard, CSV export, PostgreSQL production database, and cloud deployment using **Render** and **Vercel**.
+A production-deployed full-stack banking application built with **Spring Boot** and **Angular**. The system includes **JWT authentication**, **role-based access control**, account management, transaction processing, analytics dashboard, CSV export, PostgreSQL production database, and cloud deployment using **Railway**, **Supabase**, and **Vercel**.
 
 ---
 
 ## 🌐 Live Demo
 
 - **Frontend Live URL:** https://banking-microservices-eta.vercel.app/login
-- **Backend API URL:** https://banking-api-r5w3.onrender.com
+- **Backend API URL:** https://banking-api-production-247d.up.railway.app
 
-> Note: The backend is hosted on Render free tier, so the first request may take some time if the server is sleeping.
+> Deployment notes are in [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ---
 
@@ -76,7 +76,7 @@ _Analytics dashboard with charts and financial summaries_
 - Maven
 - JUnit / Mockito
 - Docker
-- Render Deployment
+- Railway Deployment
 
 ### Frontend
 
@@ -452,19 +452,13 @@ Example:
 
 export const environment = {
   production: true,
-  apiUrl: 'https://banking-api-r5w3.onrender.com/api'
+  apiUrl: 'https://banking-api-production-247d.up.railway.app/api'
 };
 
 🌐 Deployment
 Backend Deployment
 
-The backend is deployed on Render:
-
-https://banking-api-r5w3.onrender.com
-
-The production backend uses PostgreSQL.
-
-Render free tier may put the backend to sleep when inactive. The first request after inactivity may take a few seconds.
+The production backend should be deployed on Railway from the `/backend` directory. Railway runs the Spring Boot Docker image and connects to Supabase PostgreSQL.
 
 Frontend Deployment
 
@@ -472,7 +466,9 @@ The frontend is deployed on Vercel:
 
 https://banking-microservices-eta.vercel.app/login
 
-The frontend uses the production backend API hosted on Render.
+The frontend production API URL must point to the Railway backend URL.
+
+See `DEPLOYMENT.md` for the full Railway + Supabase setup.
 
 🧪 Testing
 
@@ -516,6 +512,15 @@ For PowerShell:
 
 Get-Process -Id (Get-NetTCPConnection -LocalPort 8081).OwningProcess | Stop-Process -Force
 
+Create Admin in Development
+
+curl -X POST http://localhost:8081/api/auth/register-admin -H "Content-Type: application/json" -d "{\"username\":\"admin\",\"password\":\"admin123\",\"email\":\"admin@bank.com\",\"adminKey\":\"SUPER_SECRET_KEY_123\"}"
+
+Create Admin in Production
+
+Use the Railway backend URL and the configured `ADMIN_SECRET_KEY`. See `DEPLOYMENT.md`.
+
+
 📊 Project Metrics
 Metric	Value
 Backend Endpoints	15+
@@ -523,8 +528,8 @@ Frontend Components	7+
 Database Tables	3
 User Roles	2
 Charts Implemented	3
-Deployment Platforms	Render + Vercel
-Backend Database	H2 + PostgreSQL
+Deployment Platforms	Railway + Supabase + Vercel
+Backend Database	H2 + Supabase PostgreSQL
 
 🏆 Skills Demonstrated
 Backend Development
@@ -555,9 +560,9 @@ CSV export functionality
 DevOps & Deployment
 Git version control
 GitHub repository management
-Render backend deployment
+Railway backend deployment
 Vercel frontend deployment
-PostgreSQL production database
+Supabase PostgreSQL production database
 Docker support
 Environment-specific configuration
 
