@@ -13,8 +13,6 @@ public interface AccountRepository extends JpaRepository<Account, String> {
 
     List<Account> findByOwnerUsernameOrderByCreatedAtDesc(String ownerUsername);
 
-    List<Account> findByAccountHolderNameContainingIgnoreCase(String name);
-
     List<Account> findByStatus(String status);
 
     boolean existsByAccountNumber(String accountNumber);

@@ -1,14 +1,10 @@
 package com.banking.account.controller;
 
-import com.banking.account.dto.AccountDTO;
-import com.banking.account.dto.TransactionRequest;
 import com.banking.account.config.SecurityConfig;
-import com.banking.account.entity.Account;
-import com.banking.account.entity.User;
-import com.banking.account.repository.AccountRepository;
-import com.banking.account.repository.TransactionRepository;
-import com.banking.account.repository.UserRepository;
+import com.banking.account.dto.AccountDTO;
+import com.banking.account.exception.ApiException;
 import com.banking.account.security.JwtAuthenticationFilter;
+import com.banking.account.service.AccountService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,22 +15,23 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(
@@ -49,56 +46,30 @@ public class AccountControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private AccountRepository accountRepository;
-
-    @MockBean
-    private TransactionRepository transactionRepository;
-
-    @MockBean
-    private UserRepository userRepository;
+    private AccountService accountService;
 
     @Autowired
     private ObjectMapper objectMapper;
 
-    private Account testAccount;
     private AccountDTO testAccountDTO;
-    private User testUser;
 
     @BeforeEach
     void setUp() {
-        testAccount = new Account();
-        testAccount.setId("test-id-123");
-        testAccount.setAccountNumber("1234567890");
-        testAccount.setAccountHolderName("John Doe");
-        testAccount.setEmail("john@test.com");
-        testAccount.setOwnerUsername("admin");
-        testAccount.setBalance(new BigDecimal("1000.00"));
-        testAccount.setAccountType("SAVINGS");
-        testAccount.setStatus("ACTIVE");
-
-        testAccountDTO = new AccountDTO();
-        testAccountDTO.setAccountNumber("1234567890");
-        testAccountDTO.setAccountHolderName("John Doe");
-        testAccountDTO.setEmail("john@test.com");
-        testAccountDTO.setBalance(new BigDecimal("1000.00"));
-        testAccountDTO.setAccountType("SAVINGS");
-
-        testUser = new User();
-        testUser.setUsername("admin");
-        testUser.setEmail("admin@test.com");
-        testUser.setPassword("password");
-        testUser.setRole("ADMIN");
-        testUser.setAccountNumber("1234567890");
-
-        when(userRepository.findByUsername(anyString())).thenReturn(Optional.of(testUser));
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken("admin", null, Collections.emptyList()));
+        testAccountDTO = AccountDTO.builder()
+                .id("test-id-123")
+                .accountNumber("1234567890")
+                .accountHolderName("John Doe")
+                .email("john@test.com")
+                .ownerUsername("admin")
+                .balance(new BigDecimal("1000.00"))
+                .accountType("SAVINGS")
+                .status("ACTIVE")
+                .build();
     }
 
     @Test
     void testCreateAccount_Success() throws Exception {
-        when(accountRepository.existsByAccountNumber(anyString())).thenReturn(false);
-        when(accountRepository.save(any(Account.class))).thenReturn(testAccount);
+        when(accountService.createAccount(any(AccountDTO.class))).thenReturn(testAccountDTO);
 
         mockMvc.perform(post("/api/accounts")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -111,7 +82,8 @@ public class AccountControllerTest {
 
     @Test
     void testCreateAccount_DuplicateAccountNumber() throws Exception {
-        when(accountRepository.existsByAccountNumber(anyString())).thenReturn(true);
+        when(accountService.createAccount(any(AccountDTO.class)))
+                .thenThrow(new ApiException(HttpStatus.BAD_REQUEST, "Account number already exists"));
 
         mockMvc.perform(post("/api/accounts")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -123,8 +95,7 @@ public class AccountControllerTest {
 
     @Test
     void testCreateAccount_AllowsSameEmailForMultipleAccounts() throws Exception {
-        when(accountRepository.existsByAccountNumber(anyString())).thenReturn(false);
-        when(accountRepository.save(any(Account.class))).thenReturn(testAccount);
+        when(accountService.createAccount(any(AccountDTO.class))).thenReturn(testAccountDTO);
 
         mockMvc.perform(post("/api/accounts")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -135,17 +106,18 @@ public class AccountControllerTest {
 
     @Test
     void testGetAllAccounts() throws Exception {
-        Account secondAccount = new Account();
-        secondAccount.setId("test-id-456");
-        secondAccount.setAccountNumber("0987654321");
-        secondAccount.setAccountHolderName("Jane Smith");
-        secondAccount.setEmail("jane@test.com");
-        secondAccount.setOwnerUsername("admin");
-        secondAccount.setBalance(new BigDecimal("2500.00"));
-        secondAccount.setAccountType("CHECKING");
-        secondAccount.setStatus("ACTIVE");
+        AccountDTO secondAccount = AccountDTO.builder()
+                .id("test-id-456")
+                .accountNumber("0987654321")
+                .accountHolderName("Jane Smith")
+                .email("jane@test.com")
+                .ownerUsername("admin")
+                .balance(new BigDecimal("2500.00"))
+                .accountType("CHECKING")
+                .status("ACTIVE")
+                .build();
 
-        when(accountRepository.findAll()).thenReturn(Arrays.asList(testAccount, secondAccount));
+        when(accountService.getAllAccounts()).thenReturn(Arrays.asList(testAccountDTO, secondAccount));
 
         mockMvc.perform(get("/api/accounts"))
                 .andExpect(status().isOk())
@@ -155,7 +127,7 @@ public class AccountControllerTest {
 
     @Test
     void testGetAccountById_Found() throws Exception {
-        when(accountRepository.findById("test-id-123")).thenReturn(Optional.of(testAccount));
+        when(accountService.getAccountById("test-id-123")).thenReturn(testAccountDTO);
 
         mockMvc.perform(get("/api/accounts/test-id-123"))
                 .andExpect(status().isOk())
@@ -165,7 +137,8 @@ public class AccountControllerTest {
 
     @Test
     void testGetAccountById_NotFound() throws Exception {
-        when(accountRepository.findById("non-existent")).thenReturn(Optional.empty());
+        when(accountService.getAccountById("non-existent"))
+                .thenThrow(new ApiException(HttpStatus.NOT_FOUND, "Account not found"));
 
         mockMvc.perform(get("/api/accounts/non-existent"))
                 .andExpect(status().isNotFound())
@@ -175,8 +148,7 @@ public class AccountControllerTest {
 
     @Test
     void testDeposit_Success() throws Exception {
-        when(accountRepository.findByAccountNumber("1234567890")).thenReturn(Optional.of(testAccount));
-        when(accountRepository.save(any(Account.class))).thenReturn(testAccount);
+        when(accountService.deposit(anyString(), any(BigDecimal.class))).thenReturn(testAccountDTO);
 
         mockMvc.perform(post("/api/accounts/1234567890/deposit")
                         .param("amount", "500.00"))
@@ -187,8 +159,7 @@ public class AccountControllerTest {
 
     @Test
     void testWithdraw_Success() throws Exception {
-        when(accountRepository.findByAccountNumber("1234567890")).thenReturn(Optional.of(testAccount));
-        when(accountRepository.save(any(Account.class))).thenReturn(testAccount);
+        when(accountService.withdraw(anyString(), any(BigDecimal.class))).thenReturn(testAccountDTO);
 
         mockMvc.perform(post("/api/accounts/1234567890/withdraw")
                         .param("amount", "200.00"))
@@ -199,7 +170,8 @@ public class AccountControllerTest {
 
     @Test
     void testWithdraw_InsufficientFunds() throws Exception {
-        when(accountRepository.findByAccountNumber("1234567890")).thenReturn(Optional.of(testAccount));
+        when(accountService.withdraw(anyString(), any(BigDecimal.class)))
+                .thenThrow(new ApiException(HttpStatus.BAD_REQUEST, "Insufficient funds"));
 
         mockMvc.perform(post("/api/accounts/1234567890/withdraw")
                         .param("amount", "2000.00"))
@@ -210,8 +182,7 @@ public class AccountControllerTest {
 
     @Test
     void testDeleteAccount_Success() throws Exception {
-        when(accountRepository.existsById("test-id-123")).thenReturn(true);
-        doNothing().when(accountRepository).deleteById("test-id-123");
+        doNothing().when(accountService).deleteAccount("test-id-123");
 
         mockMvc.perform(delete("/api/accounts/test-id-123"))
                 .andExpect(status().isOk())

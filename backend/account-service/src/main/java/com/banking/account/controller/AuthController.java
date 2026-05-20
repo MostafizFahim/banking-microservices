@@ -1,85 +1,41 @@
 package com.banking.account.controller;
 
+import com.banking.account.dto.ApiResponse;
 import com.banking.account.dto.AuthRequest;
 import com.banking.account.dto.AuthResponse;
-import com.banking.account.dto.ApiResponse;
 import com.banking.account.entity.User;
-import com.banking.account.repository.AccountRepository;
-import com.banking.account.repository.UserRepository;
-import com.banking.account.security.JwtService;
+import com.banking.account.service.AuthService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
-import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final UserRepository userRepository;
-    private final AccountRepository accountRepository;
-    private final JwtService jwtService;
-    private final PasswordEncoder passwordEncoder;
-    private final AuthenticationManager authenticationManager;
-
-    @Value("${admin.secret.key:SUPER_SECRET_KEY_123}")
-    private String ADMIN_SECRET;  // Read from environment variable with default for dev
+    private final AuthService authService;
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<User>> register(@RequestBody AuthRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            return ResponseEntity.badRequest()
-                    .body(new ApiResponse<>(false, "Username already exists", null));
-        }
-        if (request.getEmail() != null && userRepository.existsByEmail(request.getEmail())) {
-            return ResponseEntity.badRequest()
-                    .body(new ApiResponse<>(false, "Email already exists", null));
-        }
-
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole("CUSTOMER");
-        user.setEmail(request.getEmail() != null ? request.getEmail() : request.getUsername() + "@bank.com");
-        user.setAccountNumber("");
-
-        User savedUser = userRepository.save(user);
-        return ResponseEntity.ok(new ApiResponse<>(true, "User registered successfully", savedUser));
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "User registered successfully",
+                authService.register(request)
+        ));
     }
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(@RequestBody AuthRequest request) {
-        try {
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
-            );
-
-            User user = userRepository.findByUsername(request.getUsername()).orElseThrow();
-            List<String> accountNumbers = getAccountNumbers(user);
-            String defaultAccountNumber = accountNumbers.isEmpty() ? "" : accountNumbers.get(0);
-            String token = jwtService.generateToken(user.getUsername(), user.getRole(), defaultAccountNumber);
-
-            AuthResponse response = new AuthResponse(
-                    token,
-                    user.getUsername(),
-                    user.getRole(),
-                    defaultAccountNumber,
-                    accountNumbers
-            );
-
-            return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", response));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ApiResponse<>(false, "Invalid username or password", null));
-        }
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Login successful",
+                authService.login(request)
+        ));
     }
 
     @GetMapping("/test")
@@ -89,58 +45,10 @@ public class AuthController {
 
     @PostMapping("/register-admin")
     public ResponseEntity<ApiResponse<User>> registerAdmin(@RequestBody AuthRequest request) {
-        // Validate admin key from environment variable
-        if (ADMIN_SECRET == null || !ADMIN_SECRET.equals(request.getAdminKey())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(new ApiResponse<>(false, "Invalid admin key", null));
-        }
-
-        if (userRepository.existsByRole("ADMIN") && !isCurrentUserAdmin()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(new ApiResponse<>(false, "Admin registration requires an existing admin", null));
-        }
-
-        if (userRepository.existsByUsername(request.getUsername())) {
-            return ResponseEntity.badRequest()
-                    .body(new ApiResponse<>(false, "Username already exists", null));
-        }
-        if (request.getEmail() != null && userRepository.existsByEmail(request.getEmail())) {
-            return ResponseEntity.badRequest()
-                    .body(new ApiResponse<>(false, "Email already exists", null));
-        }
-
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole("ADMIN");
-        user.setEmail(request.getEmail() != null ? request.getEmail() : request.getUsername() + "@admin.com");
-        user.setAccountNumber("");
-
-        User savedUser = userRepository.save(user);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Admin registered successfully", savedUser));
-    }
-
-    private List<String> getAccountNumbers(User user) {
-        List<String> accountNumbers = accountRepository.findByOwnerUsernameOrderByCreatedAtDesc(user.getUsername())
-                .stream()
-                .map(account -> account.getAccountNumber())
-                .toList();
-
-        if (accountNumbers.isEmpty() && user.getAccountNumber() != null && !user.getAccountNumber().isBlank()) {
-            return List.of(user.getAccountNumber());
-        }
-
-        return accountNumbers;
-    }
-
-    private boolean isCurrentUserAdmin() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || authentication.getName() == null) {
-            return false;
-        }
-
-        return userRepository.findByUsername(authentication.getName())
-                .map(user -> "ADMIN".equals(user.getRole()))
-                .orElse(false);
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Admin registered successfully",
+                authService.registerAdmin(request)
+        ));
     }
 }

@@ -1,14 +1,10 @@
 package com.banking.account.controller;
 
 import com.banking.account.config.SecurityConfig;
-import com.banking.account.entity.Account;
-import com.banking.account.entity.Transaction;
-import com.banking.account.entity.User;
-import com.banking.account.repository.AccountRepository;
-import com.banking.account.repository.TransactionRepository;
-import com.banking.account.repository.UserRepository;
+import com.banking.account.dto.TransactionDTO;
+import com.banking.account.dto.TransactionSummary;
 import com.banking.account.security.JwtAuthenticationFilter;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.banking.account.service.TransactionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,15 +20,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(
@@ -47,63 +39,39 @@ public class TransactionControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private TransactionRepository transactionRepository;
+    private TransactionService transactionService;
 
-    @MockBean
-    private AccountRepository accountRepository;
-
-    @MockBean
-    private UserRepository userRepository;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    private Transaction depositTransaction;
-    private Transaction withdrawalTransaction;
-    private Account testAccount;
-    private User testUser;
+    private TransactionDTO depositTransaction;
+    private TransactionDTO withdrawalTransaction;
 
     @BeforeEach
     void setUp() {
-        depositTransaction = new Transaction();
-        depositTransaction.setId("txn-1");
-        depositTransaction.setAccountNumber("1234567890");
-        depositTransaction.setTransactionType("DEPOSIT");
-        depositTransaction.setAmount(new BigDecimal("500.00"));
-        depositTransaction.setBalanceAfter(new BigDecimal("1500.00"));
-        depositTransaction.setStatus("COMPLETED");
-        depositTransaction.setReference("TXN123456");
-        depositTransaction.setTimestamp(LocalDateTime.now());
+        depositTransaction = TransactionDTO.builder()
+                .id("txn-1")
+                .accountNumber("1234567890")
+                .transactionType("DEPOSIT")
+                .amount(new BigDecimal("500.00"))
+                .balanceAfter(new BigDecimal("1500.00"))
+                .status("COMPLETED")
+                .reference("TXN123456")
+                .timestamp(LocalDateTime.now())
+                .build();
 
-        withdrawalTransaction = new Transaction();
-        withdrawalTransaction.setId("txn-2");
-        withdrawalTransaction.setAccountNumber("1234567890");
-        withdrawalTransaction.setTransactionType("WITHDRAWAL");
-        withdrawalTransaction.setAmount(new BigDecimal("200.00"));
-        withdrawalTransaction.setBalanceAfter(new BigDecimal("1300.00"));
-        withdrawalTransaction.setStatus("COMPLETED");
-        withdrawalTransaction.setReference("TXN123457");
-        withdrawalTransaction.setTimestamp(LocalDateTime.now().minusHours(1));
-
-        testAccount = new Account();
-        testAccount.setAccountNumber("1234567890");
-        testAccount.setOwnerUsername("admin");
-
-        testUser = new User();
-        testUser.setUsername("admin");
-        testUser.setRole("ADMIN");
-        testUser.setAccountNumber("1234567890");
-
-        when(userRepository.findByUsername(anyString())).thenReturn(Optional.of(testUser));
-        when(accountRepository.findByAccountNumber("1234567890")).thenReturn(Optional.of(testAccount));
-        when(accountRepository.findAll()).thenReturn(Arrays.asList(testAccount));
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken("admin", null, Collections.emptyList()));
+        withdrawalTransaction = TransactionDTO.builder()
+                .id("txn-2")
+                .accountNumber("1234567890")
+                .transactionType("WITHDRAWAL")
+                .amount(new BigDecimal("200.00"))
+                .balanceAfter(new BigDecimal("1300.00"))
+                .status("COMPLETED")
+                .reference("TXN123457")
+                .timestamp(LocalDateTime.now().minusHours(1))
+                .build();
     }
 
     @Test
     void testGetAccountTransactions() throws Exception {
-        when(transactionRepository.findByAccountNumberOrderByTimestampDesc("1234567890"))
+        when(transactionService.getAccountTransactions("1234567890"))
                 .thenReturn(Arrays.asList(depositTransaction, withdrawalTransaction));
 
         mockMvc.perform(get("/api/transactions/account/1234567890"))
@@ -114,7 +82,7 @@ public class TransactionControllerTest {
 
     @Test
     void testGetTransactionsByType() throws Exception {
-        when(transactionRepository.findByAccountNumberAndTransactionTypeOrderByTimestampDesc("1234567890", "DEPOSIT"))
+        when(transactionService.getTransactionsByType("1234567890", "DEPOSIT"))
                 .thenReturn(Arrays.asList(depositTransaction));
 
         mockMvc.perform(get("/api/transactions/account/1234567890/type/DEPOSIT"))
@@ -126,7 +94,7 @@ public class TransactionControllerTest {
 
     @Test
     void testGetTransactionByReference() throws Exception {
-        when(transactionRepository.findByReference("TXN123456")).thenReturn(Optional.of(depositTransaction));
+        when(transactionService.getTransactionByReference("TXN123456")).thenReturn(depositTransaction);
 
         mockMvc.perform(get("/api/transactions/reference/TXN123456"))
                 .andExpect(status().isOk())
@@ -136,12 +104,13 @@ public class TransactionControllerTest {
 
     @Test
     void testGetTransactionSummary() throws Exception {
-        when(transactionRepository.getTotalByType("1234567890", "DEPOSIT"))
-                .thenReturn(new BigDecimal("500.00"));
-        when(transactionRepository.getTotalByType("1234567890", "WITHDRAWAL"))
-                .thenReturn(new BigDecimal("200.00"));
-        when(transactionRepository.findByAccountNumberOrderByTimestampDesc("1234567890"))
-                .thenReturn(Arrays.asList(depositTransaction, withdrawalTransaction));
+        when(transactionService.getTransactionSummary("1234567890"))
+                .thenReturn(new TransactionSummary(
+                        new BigDecimal("500.00"),
+                        new BigDecimal("200.00"),
+                        new BigDecimal("300.00"),
+                        2
+                ));
 
         mockMvc.perform(get("/api/transactions/account/1234567890/summary"))
                 .andExpect(status().isOk())
